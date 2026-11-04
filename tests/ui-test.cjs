@@ -23,6 +23,46 @@ const server = http.createServer((req, res) => {
   const reset = async (mobile = false) => { await page.evaluate(mobile => { window.failWrite = false; localStorage.clear(); return window.setup(mobile); }, mobile); await page.locator('.sidenote-comment-item').first().waitFor(); };
   try {
     await page.goto(`http://127.0.0.1:${server.address().port}`); await page.waitForFunction(() => window.setup); await reset();
+    await check('one-click mobile options free list space and persist without changing filters', async () => {
+      await reset(true);
+      await page.evaluate(() => { window.view.containerEl.style.height = '850px'; });
+      const toggle = page.getByRole('button', { name: '展开选项', exact: true });
+      assert.equal(await toggle.count(), 1);
+      assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), false);
+      assert.equal(await page.locator('.sidenote-navigation').isVisible(), true);
+      const collapsedHeight = (await page.locator('.sidenote-comments-list-wrapper').boundingBox()).height;
+      await toggle.click();
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), true);
+      const expandedHeight = (await page.locator('.sidenote-comments-list-wrapper').boundingBox()).height;
+      assert.ok(collapsedHeight > expandedHeight + 80, JSON.stringify({collapsedHeight, expandedHeight, layout: await page.locator('.sidenote-options').evaluate(el => ({height:el.clientHeight, scroll:el.scrollHeight, parent:el.parentElement.clientHeight}))}));
+      await page.getByLabel('筛选标记样式').selectOption('underline');
+      assert.equal(await page.getByRole('button', { name: '收起选项', exact: true }).getAttribute('aria-expanded'), 'true');
+      await page.getByRole('button', { name: '收起选项', exact: true }).click();
+      assert.match(await page.locator('.sidenote-options-status').innerText(), /筛选中/);
+      assert.equal(await page.locator('.sidenote-comment-item').count(), 2);
+      await page.getByRole('button', { name: '下一条', exact: true }).click();
+      assert.equal(await page.evaluate(() => window.lastJump), 1);
+      await page.evaluate(() => { window.plugin.pendingRebind = { filePath: 'note.md' }; window.view.renderView(); });
+      assert.equal(await page.getByRole('button', { name: '绑定所选文字', exact: true }).isVisible(), true);
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), false);
+      await page.getByRole('button', { name: '展开选项', exact: true }).focus();
+      await page.keyboard.press('Enter');
+      await page.evaluate(() => window.setup(true));
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), true);
+      await page.getByRole('button', { name: '收起选项', exact: true }).click();
+      await page.evaluate(() => window.setup(true));
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), false);
+      await page.evaluate(() => { window.view.app.saveLocalStorage = () => { throw Error('storage unavailable'); }; });
+      await page.getByRole('button', { name: '展开选项', exact: true }).click();
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), true);
+      await page.getByLabel('搜索批注', { exact: true }).fill('批注1');
+      await page.getByRole('button', { name: '收起选项', exact: true }).click();
+      assert.match(await page.locator('.sidenote-options-status').innerText(), /搜索中/);
+      await page.screenshot({ path: path.join(root, 'artifacts/options-collapsed.png') });
+      await reset();
+      assert.equal(await page.getByLabel('筛选标记样式').isVisible(), true);
+    });
     await check('combined filter affects list only and does not write annotation files', async () => {
       await page.getByLabel('筛选标记样式').selectOption('underline'); await page.getByLabel('筛选标记颜色').selectOption('#ec4899');
       assert.equal(await page.locator('.sidenote-comment-item').count(), 2);
@@ -173,6 +213,7 @@ const server = http.createServer((req, res) => {
     await check('narrow sidebar and phone landscape keep all controls inside viewport', async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.evaluate(() => { window.view.containerEl.style.width = '250px'; window.view.renderView(); });
+      await page.getByRole('button', { name: '展开选项', exact: true }).click();
       const overflow = await page.evaluate(() => { const el = window.view.containerEl; return el.scrollWidth > el.clientWidth + 1; });
       const layout = await page.evaluate(() => { const el = window.view.containerEl, right = el.getBoundingClientRect().right; return Array.from(el.querySelectorAll('*')).filter(x => x.getBoundingClientRect().right > right + 1).map(x => ({ cls: x.className, tag: x.tagName, right: x.getBoundingClientRect().right, width: x.getBoundingClientRect().width })); });
       assert.equal(overflow, false, JSON.stringify(layout));

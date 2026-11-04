@@ -1701,3 +1701,23 @@ body.is-mobile .sidenote-selection-toolbar {
         padding: 16px;
     }
 }
+
+/* One-click tools disclosure: keep navigation and annotation space available. */
+.sidenote-options-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+.sidenote-options-toggle { min-height: 36px; }
+.sidenote-options-status { font-size: 0.85em; color: var(--text-muted); }
+.sidenote-options {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 45%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.sidenote-view-container .sidenote-options[hidden] { display: none; }

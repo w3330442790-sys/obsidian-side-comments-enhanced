@@ -18,7 +18,7 @@ w.setup = async (mobile = false) => {
     setSelection: () => {}, scrollIntoView: () => {}, focus: () => {} };
     const markdownView = new MarkdownView(); markdownView.file = note; markdownView.editor = editor;
     const sourceLeaf: any = { view: markdownView, openFile: async () => {} };
-    const app: any = { vault: { configDir: '.obsidian', getName: () => 'synthetic', getAbstractFileByPath: (path: string) => path === 'note.md' ? note : null,
+    const app: any = { loadLocalStorage: (key: string) => JSON.parse(localStorage.getItem(key) || 'null'), saveLocalStorage: (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value)), vault: { configDir: '.obsidian', getName: () => 'synthetic', getAbstractFileByPath: (path: string) => path === 'note.md' ? note : null,
         read: async () => text, createFolder: async () => {}, adapter: { exists: async (p: string) => p === 'side-note-data' || files.has(p),
             read: async (p: string) => { if (!files.has(p)) throw Error('missing'); return files.get(p); },
             write: async (p: string, data: string) => { if (w.failWrite) throw Error('simulated disk failure'); writes.push(p); files.set(p, data); },

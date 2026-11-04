@@ -154,6 +154,8 @@ class SideNoteView extends ItemView {
     private activeCommentTimestamp: number | null = null;
     private searchQuery: string = "";
     private allCollapsed: boolean = false;
+    private optionsCollapsed = Platform.isMobile;
+    private optionsStatusEl: HTMLElement | null = null;
     // 新增：用于记录重绘前的滚动位置
     private lastScrollTop: number = 0;
     private activeActionMenu: HTMLElement | null = null;
@@ -166,6 +168,10 @@ class SideNoteView extends ItemView {
         super(leaf);
         this.plugin = plugin;
         this.file = file;
+        try {
+            const saved: unknown = this.app.loadLocalStorage('side-comments-origin:options-collapsed');
+            if (typeof saved === 'boolean') this.optionsCollapsed = saved;
+        } catch { /* Keep the platform default if local storage is unavailable. */ }
     }
 
     getViewType() { return "sidenote-view"; }
@@ -294,8 +300,28 @@ class SideNoteView extends ItemView {
         this.containerEl.empty();
         this.containerEl.addClass("sidenote-view-container");
 
+        const optionsHeader = this.containerEl.createDiv('sidenote-options-header');
+        const optionsToggle = optionsHeader.createEl('button', { cls: 'sidenote-options-toggle' });
+        this.optionsStatusEl = optionsHeader.createSpan({ cls: 'sidenote-options-status' });
+        this.updateOptionsStatus();
+        const options = this.containerEl.createDiv('sidenote-options');
+        const updateOptions = () => {
+            options.hidden = this.optionsCollapsed;
+            optionsToggle.setText(this.optionsCollapsed ? '选项 ▸' : '选项 ▾');
+            optionsToggle.setAttribute('aria-label', this.optionsCollapsed ? '展开选项' : '收起选项');
+            optionsToggle.setAttribute('aria-expanded', String(!this.optionsCollapsed));
+        };
+        updateOptions();
+        optionsToggle.onclick = () => {
+            this.optionsCollapsed = !this.optionsCollapsed;
+            updateOptions();
+            try {
+                this.app.saveLocalStorage('side-comments-origin:options-collapsed', this.optionsCollapsed);
+            } catch { /* The toggle remains usable without persistence. */ }
+        };
+
         // Toolbar
-        const toolbar = this.containerEl.createDiv("sidenote-toolbar");
+        const toolbar = options.createDiv("sidenote-toolbar");
         
         const searchInput = toolbar.createEl("input", {
             type: "text",
@@ -307,6 +333,7 @@ class SideNoteView extends ItemView {
         searchInput.oninput = (e) => {
             const target = e.target as HTMLInputElement;
             this.searchQuery = target.value.toLowerCase();
+            this.updateOptionsStatus();
             void this.renderCommentsList(commentsContainer);
         };
 
@@ -338,7 +365,7 @@ class SideNoteView extends ItemView {
             contentEls.forEach(el => el.classList.toggle("collapsed", this.allCollapsed));
         };
 
-        this.renderEnhancementControls();
+        this.renderEnhancementControls(options);
         this.navigationEl = this.containerEl.createDiv('sidenote-navigation');
         const commentsContainer = this.containerEl.createDiv("sidenote-comments-list-wrapper");
 
@@ -353,8 +380,13 @@ class SideNoteView extends ItemView {
         }
     }
 
-    private renderEnhancementControls() {
-        const controls = this.containerEl.createDiv('sidenote-filters');
+    private updateOptionsStatus() {
+        const filtering = Object.values(this.plugin.preferences.filter).some(Boolean);
+        this.optionsStatusEl?.setText([this.searchQuery ? '搜索中' : '', filtering ? '筛选中' : ''].filter(Boolean).join(' · '));
+    }
+
+    private renderEnhancementControls(options: HTMLElement) {
+        const controls = options.createDiv('sidenote-filters');
         const filter = this.plugin.preferences.filter;
         const style = controls.createEl('select', { attr: { 'aria-label': '筛选标记样式' } });
         style.createEl('option', { text: '全部样式', value: '' });
@@ -380,7 +412,7 @@ class SideNoteView extends ItemView {
         orphans.setAttribute('aria-pressed', String(!!filter.orphanOnly));
         orphans.onclick = () => apply(filter.orphanOnly ? {} : { orphanOnly: true });
         controls.createEl('button', { text: '显示全部' }).onclick = () => { this.searchQuery = ''; apply({}); };
-        const saved = this.containerEl.createDiv('sidenote-presets');
+        const saved = options.createDiv('sidenote-presets');
         const preset = saved.createEl('select', { attr: { 'aria-label': '常用筛选' } });
         preset.createEl('option', { text: '选择常用筛选…', value: '' });
         this.plugin.preferences.presets.forEach((p, i) => preset.createEl('option', { text: p.name, value: String(i) }));
