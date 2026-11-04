@@ -1,0 +1,30 @@
+name: Verify plugin
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - name: Install isolated test browser
+        run: npx playwright install --with-deps chromium
+      - name: Run synthetic desktop and tablet interaction checks
+        run: |
+          export BROWSER_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          npm run test:ui
