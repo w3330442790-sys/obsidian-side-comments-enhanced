@@ -1,12 +1,12 @@
 # Markdown Tool（原 Side Comments 增强版）
 
-当前版本 **1.2.0**。新增文字标红、右键工具栏、Markdown／大纲／思维导图同步、连线文字、总括子树、撤销重做、搜索折叠与冲突恢复。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
+当前版本 **1.3.0**。新增正文拖动调整层级、Markdown 语法工具栏、文字标红、右键工具栏、Markdown／大纲／思维导图同步、连线文字、总括子树、撤销重做、搜索折叠与冲突恢复。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.1.0**
+- 当前版本：**1.3.0**
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
-- 插件 ID：`side-comments-origin`，作为原插件的兼容升级使用
+- 插件 ID：`personal-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest)
 
 ## 手机和平板安装：BRAT
@@ -54,7 +54,7 @@
 
 ## 手动安装与回退
 
-从 [Release](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`，放入笔记库的 `.obsidian/plugins/side-comments-origin/` 后重载插件。也可下载 ZIP 并复制其中的插件文件。
+从 [Release](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`，放入笔记库的 `.obsidian/plugins/personal-markdown-tool/` 后重载插件。也可下载 ZIP 并复制其中的插件文件。
 
 不要替换自己的 `data.json`、`enhancements.json` 或批注数据目录。回退时只恢复旧插件的程序文件，避免用旧备份覆盖升级后的新批注。
 

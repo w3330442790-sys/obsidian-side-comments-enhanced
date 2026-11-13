@@ -1,4 +1,4 @@
-﻿import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateResult, Plugin, Setting, PluginSettingTab, MarkdownRenderer, setIcon, Component, normalizePath, Platform, Editor } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateResult, Plugin, Setting, PluginSettingTab, MarkdownRenderer, setIcon, Component, normalizePath, Platform, Editor } from "obsidian";
 import { Comment, CommentManager } from "./commentManager";
 import { registerMarkdownTool } from './mindmap/view';
 import { Modal } from 'obsidian';
@@ -10,6 +10,9 @@ import { RangeSetBuilder, SelectionRange, StateEffect } from "@codemirror/state"
 import { generateBinaryHash, generateHash } from "./hash";
 import { markPresentation } from './selection-tools';
 import { migrateLegacyData } from './legacy-data';
+import { BlockIndex, mapPlanRange, planBlockMove, type MovePlan } from './block-drag';
+import { blockDragExtension, blockMoveEffect, dispatchBlockMove } from './drag-handles';
+import { MARKDOWN_TOOLBAR_COMMANDS, applyMarkdownCommand, mountMarkdownToolbar } from './markdown-toolbar';
 
 // --- Helper Functions ---
 
@@ -28,6 +31,8 @@ interface SideNoteSettings {
     highlightColor: string;
     highlightOpacity: number;
     enableSelectionToolbar: boolean;
+    enableMarkdownToolbar: boolean;
+    enableBlockDrag: boolean;
     commentsDataFolder: string;
 }
 
@@ -115,6 +120,8 @@ const DEFAULT_SETTINGS: SideNoteSettings = {
     highlightColor: "#FFC800",
     highlightOpacity: 0.2,
     enableSelectionToolbar: true,
+    enableMarkdownToolbar: true,
+    enableBlockDrag: true,
     commentsDataFolder: "side-note-data",
 };
 
@@ -1360,6 +1367,28 @@ class SideNoteSettingTab extends PluginSettingTab {
                     }))
             },
             {
+                name: "显示 Markdown 工具栏",
+                desc: "在编辑器顶部显示标题、加粗、列表、链接等语法按钮，减少手动输入 Markdown 标记。",
+                render: (setting: Setting) => setting.addToggle((toggle) => toggle
+                    .setValue(this.plugin.settings.enableMarkdownToolbar !== false)
+                    .onChange(async (value: boolean) => {
+                        this.plugin.settings.enableMarkdownToolbar = value;
+                        await this.plugin.saveData();
+                        this.plugin.syncMarkdownToolbars();
+                    }))
+            },
+            {
+                name: "启用拖动调整层级",
+                desc: "在正文左侧显示拖动手柄，拖动可移动段落、列表项或标题，并让批注跟随原文。",
+                render: (setting: Setting) => setting.addToggle((toggle) => toggle
+                    .setValue(this.plugin.settings.enableBlockDrag !== false)
+                    .onChange(async (value: boolean) => {
+                        this.plugin.settings.enableBlockDrag = value;
+                        await this.plugin.saveData();
+                        this.plugin.refreshEditorDecorations();
+                    }))
+            },
+            {
                 name: "快捷键设置",
                 desc: "加粗、高亮、批注、下划线都已注册为 Obsidian 命令，可在 Obsidian 快捷键设置中自定义绑定。",
                 render: (setting: Setting) => setting.setHeading()
@@ -1474,6 +1503,18 @@ class SideNoteSettingTab extends PluginSettingTab {
             .addToggle((toggle) => toggle.setValue(this.plugin.settings.enableSelectionToolbar).onChange(async (value: boolean) => {
                     this.plugin.settings.enableSelectionToolbar = value;
                     await this.plugin.saveData();
+                }));
+        new Setting(containerEl).setName("显示 Markdown 工具栏").setDesc("在编辑器顶部显示标题、加粗、列表、链接等语法按钮，减少手动输入 Markdown 标记。")
+            .addToggle((toggle) => toggle.setValue(this.plugin.settings.enableMarkdownToolbar !== false).onChange(async (value: boolean) => {
+                    this.plugin.settings.enableMarkdownToolbar = value;
+                    await this.plugin.saveData();
+                    this.plugin.syncMarkdownToolbars();
+                }));
+        new Setting(containerEl).setName("启用拖动调整层级").setDesc("在正文左侧显示拖动手柄，拖动可移动段落、列表项或标题，并让批注跟随原文。")
+            .addToggle((toggle) => toggle.setValue(this.plugin.settings.enableBlockDrag !== false).onChange(async (value: boolean) => {
+                    this.plugin.settings.enableBlockDrag = value;
+                    await this.plugin.saveData();
+                    this.plugin.refreshEditorDecorations();
                 }));
         new Setting(containerEl)
             .setName("快捷键设置")
@@ -1679,6 +1720,7 @@ export default class SideNote extends Plugin {
     private pendingOrphans: Comment[] = [];
     private isSaving: boolean = false;
     private editorViews: Set<EditorView> = new Set();
+    private readonly markdownToolbars: Map<MarkdownView, () => void> = new Map();
     private renderedTableHighlightTimers: number[] = [];
     private selectionToolbarObserver: MutationObserver | null = null;
     private readingViewSections: Map<HTMLElement, ReadingViewSectionState> = new Map();
@@ -2403,6 +2445,107 @@ export default class SideNote extends Plugin {
         });
     }
 
+    /** Handles the drag gutter: only the main Markdown editor of a note gets handles. */
+    private isBlockDragEnabled(view: EditorView): boolean {
+        if (this.settings.enableBlockDrag === false) return false;
+        if (!this.getFilePathForEditorView(view)) return false;
+        if (view.dom.closest('.cm-table-widget')) return false;
+        return !!view.dom.closest('.markdown-source-view');
+    }
+
+    /**
+     * Re-anchors annotations from the deterministic block-move mapping instead of
+     * the fuzzy re-match used for arbitrary external edits. Only ranges whose text
+     * is byte-identical after the move are updated; a marker that was rewritten
+     * (heading hashes, list indentation) stays with the generic recovery path.
+     */
+    public reanchorAfterBlockMove(plan: MovePlan, view: EditorView): void {
+        const filePath = this.getFilePathForEditorView(view);
+        if (!filePath) return;
+        const comments = this.commentManager.getCommentsForFile(filePath);
+        if (!comments.length) return;
+        const doc = view.state.doc;
+        const text = doc.toString();
+        let changed = false;
+        for (const comment of comments) {
+            if (typeof comment.absoluteFrom !== 'number' || typeof comment.absoluteTo !== 'number') continue;
+            const mapped = mapPlanRange(plan, comment.absoluteFrom, comment.absoluteTo);
+            if (!mapped) continue;
+            if (text.slice(mapped.from, mapped.to) !== comment.selectedText) continue;
+            const start = doc.lineAt(mapped.from);
+            const end = doc.lineAt(mapped.to);
+            comment.absoluteFrom = mapped.from;
+            comment.absoluteTo = mapped.to;
+            comment.startLine = start.number - 1;
+            comment.startChar = mapped.from - start.from;
+            comment.endLine = end.number - 1;
+            comment.endChar = mapped.to - end.from;
+            comment.isOrphaned = false;
+            const context = this.getSelectionContextFromOffsets(text, mapped.from, mapped.to);
+            comment.contextBefore = context.before;
+            comment.contextAfter = context.after;
+            comment.occurrenceIndex = this.getOccurrenceIndex(text, comment.selectedText, mapped.from);
+            comment.headingPath = this.getHeadingPath(text, comment.startLine);
+            changed = true;
+        }
+        if (!changed) return;
+        this.refreshEditorDecorations();
+        void this.saveCommentsForSingleFile(filePath).catch(error => console.error('保存批注坐标失败', error));
+    }
+
+    /** Keyboard and touch alternative to dragging, used by the block-move commands. */
+    private moveActiveBlock(command: 'up' | 'down' | 'indent' | 'outdent', editor: Editor): void {
+        const cm = (editor as EditorWithCodeMirror).cm;
+        if (!cm) { new Notice('请在 Markdown 编辑模式中使用块移动命令。'); return; }
+        const source = cm.state.doc.toString();
+        const index = new BlockIndex(source);
+        const line = cm.state.doc.lineAt(cm.state.selection.main.from);
+        const block = index.at(line.number - 1);
+        if (block.kind === 'other') { new Notice('光标所在位置没有可移动的内容。'); return; }
+        const { sibling, parent } = index.neighbours(block);
+        let plan: MovePlan | null = null;
+        if (command === 'up') {
+            const target = sibling ?? index.blockBefore(block);
+            if (target) plan = planBlockMove(source, block, target, 'before');
+        } else if (command === 'down') {
+            const target = index.blockAfter(block);
+            if (target) plan = planBlockMove(source, block, target, 'after');
+        } else if (command === 'indent') {
+            if (sibling) plan = planBlockMove(source, block, sibling, 'child');
+        } else if (parent) {
+            plan = planBlockMove(source, block, parent, 'after');
+        }
+        if (!plan) {
+            new Notice(command === 'indent' ? '没有可归入的上一项。' : command === 'outdent' ? '没有可升出的上级。' : '已经到尽头，无法继续移动。');
+            return;
+        }
+        dispatchBlockMove(cm, plan);
+        this.reanchorAfterBlockMove(plan, cm);
+        cm.focus();
+    }
+
+    /** Mounts or removes the fixed Markdown toolbar on every open Markdown leaf. */
+    public syncMarkdownToolbars(): void {
+        if (this.settings.enableMarkdownToolbar === false) {
+            for (const dispose of this.markdownToolbars.values()) dispose();
+            this.markdownToolbars.clear();
+            return;
+        }
+        const open = new Set<MarkdownView>();
+        this.app.workspace.getLeavesOfType('markdown').forEach(leaf => {
+            if (!(leaf.view instanceof MarkdownView)) return;
+            open.add(leaf.view);
+            if (this.markdownToolbars.has(leaf.view)) return;
+            if (!leaf.view.containerEl.querySelector('.view-content')) return;
+            this.markdownToolbars.set(leaf.view, mountMarkdownToolbar(leaf.view, { onNotice: message => new Notice(message) }));
+        });
+        for (const [view, dispose] of this.markdownToolbars) {
+            if (open.has(view) && view.containerEl.querySelector('.mt-md-toolbar')) continue;
+            dispose();
+            this.markdownToolbars.delete(view);
+        }
+    }
+
     public mapCommentPositionsFromView(update: ViewUpdate) {
         const filePath = this.getFilePathForEditorView(update.view);
         if (!filePath || !update.docChanged) return;
@@ -3112,10 +3255,19 @@ export default class SideNote extends Plugin {
         this.drafts = new DraftStore(window.localStorage, identity);
         this.commentManager = new CommentManager(this.comments);
         await this.migrateComments();
-        this.registerEditorExtension([this.createSelectionToolbarPlugin(), ...this.createHighlightPlugin()]);
+        this.registerEditorExtension([
+            this.createSelectionToolbarPlugin(),
+            ...this.createHighlightPlugin(),
+            blockDragExtension({
+                isEnabled: view => this.isBlockDragEnabled(view),
+                onMove: (plan, view) => this.reanchorAfterBlockMove(plan, view),
+                onMessage: message => new Notice(message),
+            }),
+        ]);
         this.registerMarkdownPostProcessor((el, ctx) => this.registerReadingViewSection(el, ctx), 100);
         this.registerReadingViewInteractions();
-        this.app.workspace.onLayoutReady(() => this.rerenderReadingViews());
+        this.app.workspace.onLayoutReady(() => { this.rerenderReadingViews(); this.syncMarkdownToolbars(); });
+        this.registerEvent(this.app.workspace.on('layout-change', () => this.syncMarkdownToolbars()));
         this.registerSelectionToolbarDismissal();
         this.scheduleRenderedTableHighlights();
         
@@ -3157,6 +3309,17 @@ export default class SideNote extends Plugin {
         this.addCommand({ id: 'open-selection-toolbar', name: '打开文字工具栏', editorCallback: editor => this.openSelectionToolbar(editor) });
         this.addCommand({ id: 'red-selected-text', name: '为选中内容标红文字', editorCallback: (editor, view) => this.handleAddComment(editor, view, 'text-color', '#dc2626', true) });
         this.addCommand({ id: 'clear-selected-mark', name: '清除所选标记（保留批注）', editorCallback: (editor, view) => this.handleAddComment(editor, view, 'none', undefined, true) });
+        this.addCommand({ id: 'block-move-up', name: '上移当前块（段落 / 列表项 / 标题）', editorCallback: editor => this.moveActiveBlock('up', editor) });
+        this.addCommand({ id: 'block-move-down', name: '下移当前块（段落 / 列表项 / 标题）', editorCallback: editor => this.moveActiveBlock('down', editor) });
+        this.addCommand({ id: 'block-indent', name: '降低当前块层级（归入上一项）', editorCallback: editor => this.moveActiveBlock('indent', editor) });
+        this.addCommand({ id: 'block-outdent', name: '提升当前块层级（移出上一级）', editorCallback: editor => this.moveActiveBlock('outdent', editor) });
+        for (const { command, label } of MARKDOWN_TOOLBAR_COMMANDS) {
+            this.addCommand({
+                id: `markdown-${command}`,
+                name: `Markdown 工具栏：${label}`,
+                editorCallback: editor => applyMarkdownCommand(editor, command),
+            });
+        }
         
         this.addCommand({
             id: "add-comment-to-selection", name: "为选中内容添加高亮", icon: "message-square",
@@ -3235,6 +3398,7 @@ export default class SideNote extends Plugin {
                 });
                 this.refreshEditorDecorations();
                 this.scheduleRenderedTableHighlights();
+                this.syncMarkdownToolbars();
             }
         }));
         this.registerEvent(this.app.vault.on('rename', async (file, oldPath) => {
@@ -3296,6 +3460,8 @@ export default class SideNote extends Plugin {
         CommentModal.closeActive();
         this.hideSelectionToolbars();
         this.hideReadingTooltip();
+        for (const dispose of this.markdownToolbars.values()) dispose();
+        this.markdownToolbars.clear();
         if (this.orphanNoticeTimer) {
             window.clearTimeout(this.orphanNoticeTimer);
             this.orphanNoticeTimer = null;
@@ -3951,7 +4117,8 @@ export default class SideNote extends Plugin {
                 }
             };
             update(update: ViewUpdate) {
-                if (update.docChanged) plugin.mapCommentPositionsFromView(update);
+                const movedByDrag = update.transactions.some(transaction => transaction.effects.some(effect => effect.is(blockMoveEffect)));
+                if (update.docChanged && !movedByDrag) plugin.mapCommentPositionsFromView(update);
                 if (update.docChanged || update.viewportChanged || update.transactions.some(tr => tr.effects.some(e => e.is(forceUpdateEffect)))) {
                     this.decorations = this.buildDecorations(update.view);
                     window.setTimeout(() => plugin.applyRenderedTableHighlights(update.view), 0);
