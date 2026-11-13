@@ -190,14 +190,21 @@ function startDrag(view: EditorView, block: DocBlock, event: PointerEvent, optio
 }
 
 function resolveTarget(view: EditorView, block: DocBlock, x: number, y: number, cache: SnapshotCache): { block: DocBlock; mode: DropMode } | null {
-    const position = view.posAtCoords({ x, y });
-    if (position === null || position < 0) return null;
     const doc = view.state.doc;
-    const line = doc.lineAt(position);
-    const target = cache.get(view).at(line.number - 1);
+    // Resolve the target line from the vertical position only. posAtCoords needs the
+    // pointer to be inside the content box, which is brittle at the very top edge of
+    // a note or when a line is padded differently across platforms.
+    const position = view.posAtCoords({ x, y });
+    let lineNumber: number;
+    if (position !== null && position >= 0) {
+        lineNumber = doc.lineAt(position).number;
+    } else {
+        lineNumber = doc.lineAt(view.lineBlockAtHeight(y - view.documentTop).from).number;
+    }
+    const target = cache.get(view).at(lineNumber - 1);
     if (target.kind === 'other') return null;
     if (target.startLine >= block.startLine && target.startLine <= block.endLine) return null;
-    const coords = view.coordsAtPos(doc.line(line.number).from);
+    const coords = view.coordsAtPos(doc.line(lineNumber).from);
     if (!coords) return null;
     const height = Math.max(6, coords.bottom - coords.top);
     const ratio = (y - coords.top) / height;

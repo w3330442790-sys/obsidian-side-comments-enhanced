@@ -34,11 +34,14 @@ const server = http.createServer((req, res) => {
     assert.ok(box, `drag handle for line ${startLine} must be visible`);
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   };
-  const dragTo = async (from, to) => {
+  const dragTo = async (from, to, expectedMode) => {
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
     await page.mouse.move(to.x, to.y, { steps: 8 });
     await page.mouse.move(to.x + 1, to.y + 1, { steps: 2 });
+    if (expectedMode) {
+      await page.waitForFunction(mode => document.querySelector('.mt-drop-indicator')?.className.includes('mt-drop-' + mode), expectedMode, { timeout: 5000 });
+    }
     await page.mouse.up();
   };
   const linePoint = async (line, ratio) => {
@@ -59,7 +62,7 @@ const server = http.createServer((req, res) => {
 
     await check('dragging a heading below the next section reorders the whole section', async () => {
       await setup('# A\n\nalpha\n\n# B\n\nbeta\n');
-      await dragTo(await handleBox(0), await linePoint(7, 0.9));
+      await dragTo(await handleBox(0), await linePoint(7, 0.85), 'after');
       assert.equal(await page.evaluate(() => window.doc()), '# B\n\nbeta\n\n# A\n\nalpha\n');
       const moves = await page.evaluate(() => window.moves.map(plan => ({ text: plan.text, mode: plan.mode })));
       assert.equal(moves.length, 1);
@@ -68,14 +71,14 @@ const server = http.createServer((req, res) => {
 
     await check('dropping in the middle of a list item nests it as a child', async () => {
       await setup('- one\n  - child\n- two\n');
-      await dragTo(await handleBox(0), await linePoint(3, 0.5));
+      await dragTo(await handleBox(0), await linePoint(3, 0.5), 'child');
       assert.equal(await page.evaluate(() => window.doc()), '- two\n  - one\n    - child\n');
       assert.equal(await page.evaluate(() => window.moves[0].levelDelta), 2);
     });
 
     await check('dropping at the top edge inserts before the target block', async () => {
       await setup('# A\n\nalpha\n\n# B\n\nbeta\n');
-      await dragTo(await handleBox(4), await linePoint(1, 0.1));
+      await dragTo(await handleBox(4), await linePoint(1, 0.2), 'before');
       assert.equal(await page.evaluate(() => window.doc()), '# B\n\nbeta\n\n# A\n\nalpha\n');
       assert.equal(await page.evaluate(() => window.moves[0].mode), 'before');
     });
