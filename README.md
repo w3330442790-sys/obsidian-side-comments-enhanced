@@ -2,9 +2,9 @@
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.2.0**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**1.2.1**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
-- 插件 ID：`side-comments-origin`，作为原插件的兼容升级使用
+- 插件 ID：`personal-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest)
 
 ## 手机和平板安装：BRAT
@@ -22,7 +22,7 @@
 
 这是通过 GitHub／BRAT 安装的版本，尚未作为独立插件提交到 Obsidian 官方插件目录。
 
-如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。沿用同一个插件 ID，升级后在原有设置位置使用。
+如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。1.2.1 起使用独立 ID `personal-markdown-tool`，原版保持停用。首次启用时仅在新目录缺少对应文件时复制旧 `side-comments-origin` 的 data.json 与 enhancements.json，保留自定义批注路径、筛选和未知字段；不删除旧目录、不改笔记。后续设置保存在新插件目录。
 
 ## 已有批注与跨设备同步
 
@@ -67,7 +67,7 @@ Markdown 是正文来源；关联线、总括子树与节点标识保存在文�
 
 ## 手动安装与回退
 
-从 [Release](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`，放入笔记库的 `.obsidian/plugins/side-comments-origin/` 后重载插件。也可下载 ZIP 并复制其中的插件文件。
+从 [Release](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`，放入笔记库的 `.obsidian/plugins/personal-markdown-tool/` 后重载插件。保留旧 `side-comments-origin` 数据目录用于首次设置迁移，旧版保持停用。
 
 不要替换自己的 `data.json`、`enhancements.json` 或批注数据目录。回退时只恢复旧插件的程序文件，避免用旧备份覆盖升级后的新批注。
 

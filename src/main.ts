@@ -9,6 +9,7 @@ import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate, hoverToo
 import { RangeSetBuilder, SelectionRange, StateEffect } from "@codemirror/state";
 import { generateBinaryHash, generateHash } from "./hash";
 import { markPresentation } from './selection-tools';
+import { migrateLegacyData } from './legacy-data';
 
 // --- Helper Functions ---
 
@@ -3102,6 +3103,7 @@ export default class SideNote extends Plugin {
     }
 
     async onload() {
+        await migrateLegacyData(this.app, this.manifest.id, 'side-comments-origin', ['data.json', 'enhancements.json']);
         // Heal orphaned floating windows and stale cross-reload modal references first.
         CommentModal.closeActive();
         await this.loadPluginData();

@@ -1,3 +1,9 @@
+# 1.2.1 · 2026-11-13 · 独立更新身份
+
+- 插件 ID 改为 personal-markdown-tool，避免原社区版更新覆盖个人版。
+- 新目录缺少设置时复制旧 data.json、enhancements.json，保留未知字段、自定义批注路径及旧文件。
+- 继续通过 w3330442790-sys/obsidian-side-comments-enhanced 的 BRAT Release 更新。
+
 # 1.2.0 · 2026-11-13 · Markdown Tool
 
 - 插件更名为 Markdown Tool，保留插件 ID、原仓库地址与旧批注数据。
