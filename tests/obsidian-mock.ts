@@ -35,6 +35,11 @@ export class ItemView extends Component {
     async setState() {}
 }
 export class MarkdownView { file: any; editor: any; containerEl = document.createElement('div'); getMode() { return 'source'; } }
+export class TextFileView extends ItemView {
+    contentEl = document.createElement('div'); file: any; data = '';
+    constructor(leaf: any) { super(leaf); this.containerEl.append(this.contentEl); }
+    async onClose() {} async onUnloadFile() {} async save() {}
+}
 export class TFile { path: string; extension = 'md'; basename: string; constructor(path: string) { this.path = path; this.basename = path.replace(/\.md$/, ''); } }
 export class Modal {
     containerEl = document.createElement('div') as any; titleEl: any; contentEl: any;

@@ -31,7 +31,7 @@ export interface Comment {
     contextAfter?: string;
 
     // --- 新增：批注形式 ---
-    markType?: 'highlight' | 'underline' | 'strikethrough' | 'bold';
+    markType?: 'highlight' | 'underline' | 'strikethrough' | 'bold' | 'text-color' | 'none';
     
     // --- 新增：批注颜色 ---
     color?: string;
@@ -141,10 +141,11 @@ export class CommentManager {
     /**
      * 更新评论坐标的核心方法
      * 新策略：
-     * 1. 优先信任 absoluteFrom/absoluteTo，并校验当前位置文字。
-     * 2. 在相同标题块内找候选，降低重复文字跨章节误匹配。
-     * 3. 对所有候选做综合评分：文本、上下文、标题路径、旧位置、重复序号。
-     * 4. 分数不足或第一、第二候选差距过小时，标记为孤儿，避免错误高亮。
+     * 1. 重复文字必须有唯一的上下文匹配，不能仅信任旧偏移、行号或重复序号。
+     * 2. 唯一文字校验 absoluteFrom/absoluteTo 后可以继续使用。
+     * 3. 在相同标题块内找候选，降低文本变化后跨章节误匹配。
+     * 4. 对恢复候选做综合评分：文本、上下文、标题路径、旧位置、重复序号。
+     * 5. 分数不足或第一、第二候选差距过小时，标记为孤儿，避免错误高亮。
      */
     async updateCommentCoordinatesForFile(fileContent: string, filePath: string): Promise<void> {
         const fileComments = this.comments.filter(comment => comment.filePath === filePath);
@@ -153,6 +154,24 @@ export class CommentManager {
             const selectedText = comment.selectedText || "";
             if (!selectedText) {
                 comment.isOrphaned = true;
+                continue;
+            }
+
+            // Moving same-labelled branches can leave the old offset pointing to a
+            // different node with exactly the same text. Resolve duplicates by
+            // local textual evidence before any positional or heading heuristic.
+            const exactMatches: number[] = [];
+            let cursor = 0;
+            while (cursor <= fileContent.length - selectedText.length) {
+                const index = fileContent.indexOf(selectedText, cursor);
+                if (index < 0) break;
+                exactMatches.push(index);
+                cursor = index + 1;
+            }
+            if (exactMatches.length > 1) {
+                const contextual = exactMatches.filter(index => this.matchesLocalContext(fileContent, index, comment));
+                if (contextual.length === 1) this.applyMatch(comment, fileContent, contextual[0], selectedText);
+                else comment.isOrphaned = true;
                 continue;
             }
 
@@ -193,6 +212,36 @@ export class CommentManager {
                 comment.isOrphaned = true;
             }
         }
+    }
+
+    /**
+     * Compare the same-line prefix and the first nonempty following line. Full
+     * stored snippets often span neighbouring branches, so requiring the entire
+     * snippet would reject a legitimate move. A list/heading marker alone is not
+     * identity evidence; at least one side must contain actual letters/numbers.
+     * If both sides contain evidence, both must agree. Ambiguity stays orphaned.
+     */
+    private matchesLocalContext(content: string, index: number, comment: Comment): boolean {
+        const meaningful = (text: string) => /[\p{L}\p{N}]/u.test(text);
+        const before = (comment.contextBefore || '').split('\n').pop()!.trim();
+        const afterLines = (comment.contextAfter || '').split('\n');
+        const afterIndex = afterLines.findIndex(line => line.trim());
+        const after = afterIndex >= 0 ? afterLines[afterIndex].trim() : '';
+        // The next heading/list item may be a different branch. Its label must
+        // not become a substitute identity for an otherwise ambiguous node.
+        const followingStructure = afterIndex > 0 && /^(?:#{1,6}\s|[-*+]\s|\d+[.)]\s)/.test(after);
+        const hasBefore = meaningful(before), hasAfter = meaningful(after) && !followingStructure;
+        if (!hasBefore && !hasAfter) return false;
+
+        const beforeNow = content.slice(content.lastIndexOf('\n', index - 1) + 1, index).trim();
+        if (hasBefore && !beforeNow.endsWith(before)) return false;
+        if (hasAfter) {
+            const afterNow = content.slice(index + comment.selectedText.length).split('\n').find(line => line.trim())?.trim() || '';
+            // The saved 50-character window may end partway through a long line.
+            const clipped = (comment.contextAfter?.length || 0) >= 50 && afterIndex === afterLines.length - 1;
+            if (clipped ? !afterNow.startsWith(after) : afterNow !== after) return false;
+        }
+        return true;
     }
 
     private isOffsetMatch(content: string, comment: Comment): boolean {

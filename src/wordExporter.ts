@@ -313,6 +313,11 @@ function runOptionsFor(style: InlineStyle, covering: ResolvedComment[]): IRunOpt
     // in-editor appearance (markType/color).
     for (const rc of covering) {
         switch (rc.comment.markType) {
+            case "text-color":
+                opts.color = normalizeHex(/^#[0-9a-f]{6}$/i.test(rc.comment.color || '') ? rc.comment.color! : '#dc2626');
+                break;
+            case "none":
+                break;
             case "bold":
                 bold = true;
                 break;

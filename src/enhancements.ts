@@ -78,7 +78,7 @@ export class DraftStore {
             const d = candidate as Record<string, unknown>;
             return typeof d.key === 'string' && typeof d.filePath === 'string' && typeof d.commentText === 'string' &&
                 typeof d.selectedText === 'string' && typeof d.color === 'string' && typeof d.markType === 'string' &&
-                ['highlight', 'underline', 'strikethrough', 'bold'].includes(d.markType) &&
+                ['highlight', 'underline', 'strikethrough', 'bold', 'text-color', 'none'].includes(d.markType) &&
                 typeof d.from === 'number' && Number.isFinite(d.from) && typeof d.to === 'number' && Number.isFinite(d.to) &&
                 typeof d.updatedAt === 'number' && Number.isFinite(d.updatedAt);
         };

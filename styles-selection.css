@@ -1,0 +1,26 @@
+/* Foreground marks deliberately have no highlight background or underline. */
+.sidenote-highlight.sidenote-mark-text-color,
+.sidenote-highlight.sidenote-mark-text-color:hover {
+    color: var(--sidenote-text-color, #dc2626);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+.sidenote-highlight.sidenote-mark-none,
+.sidenote-highlight.sidenote-mark-none:hover {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    font-weight: inherit;
+    text-decoration: none;
+}
+.sidenote-selection-toolbar {
+    max-width: calc(100vw - 16px);
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+.sidenote-toolbar-btn[data-sidenote-action="red"] { color: #dc2626; }
+@media (pointer: coarse) {
+    .sidenote-selection-toolbar .sidenote-toolbar-btn,
+    .sidenote-selection-toolbar .sidenote-color-circle { min-width: 36px; min-height: 36px; }
+}

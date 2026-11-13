@@ -1,4 +1,6 @@
-# Side Comments 增强版
+# Markdown Tool（原 Side Comments 增强版）
+
+当前版本 **1.2.0**。新增文字标红、右键工具栏、Markdown／大纲／思维导图同步、连线文字、总括子树、撤销重做、搜索折叠与冲突恢复。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 

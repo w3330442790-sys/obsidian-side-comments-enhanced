@@ -1,5 +1,6 @@
 ﻿import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateResult, Plugin, Setting, PluginSettingTab, MarkdownRenderer, setIcon, Component, normalizePath, Platform, Editor } from "obsidian";
 import { Comment, CommentManager } from "./commentManager";
+import { registerMarkdownTool } from './mindmap/view';
 import { Modal } from 'obsidian';
 import { filterComments, navigation, rebindComment, restoreComment, draftKey, DraftStore, Draft, Preferences, CommentFilter } from './enhancements';
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
@@ -7,6 +8,7 @@ import { exportNoteToDocx } from "./wordExporter";
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate, hoverTooltip } from "@codemirror/view";
 import { RangeSetBuilder, SelectionRange, StateEffect } from "@codemirror/state";
 import { generateBinaryHash, generateHash } from "./hash";
+import { markPresentation } from './selection-tools';
 
 // --- Helper Functions ---
 
@@ -124,13 +126,16 @@ const SHORTCUT_COMMANDS = [
 ];
 
 const MARK_TYPE_OPTIONS: Array<{ value: CommentMarkType; label: string; icon: string }> = [
+    { value: "text-color", label: "文字颜色", icon: "baseline" },
     { value: "highlight", label: "高亮", icon: "highlighter" },
     { value: "underline", label: "下划线", icon: "underline" },
     { value: "strikethrough", label: "删除线", icon: "strikethrough" },
-    { value: "bold", label: "加粗", icon: "bold" }
+    { value: "bold", label: "加粗", icon: "bold" },
+    { value: "none", label: "无标记（保留批注）", icon: "eraser" }
 ];
 
 const COLOR_PRESETS = [
+    { name: "红色", value: "#dc2626" },
     { name: "紫色", value: "#8b5cf6" },
     { name: "粉色", value: "#ec4899" },
     { name: "蓝色", value: "#3b82f6" },
@@ -175,7 +180,7 @@ class SideNoteView extends ItemView {
     }
 
     getViewType() { return "sidenote-view"; }
-    getDisplayText() { return "Side note"; }
+    getDisplayText() { return this.plugin.manifest.name + " · 批注"; }
     getIcon() { return "message-square"; }
 
     async onOpen() {
@@ -1560,7 +1565,7 @@ export default class SideNote extends Plugin {
             const value = JSON.parse(await this.app.vault.adapter.read(path)) as Preferences;
             const validFilter = (filter: CommentFilter) => !!filter && typeof filter === 'object' &&
                 (filter.color === undefined || (typeof filter.color === 'string' && (!filter.color || /^#[0-9a-f]{6}$/i.test(filter.color)))) &&
-                (filter.markType === undefined || ['', 'highlight', 'underline', 'strikethrough', 'bold'].includes(filter.markType)) &&
+                (filter.markType === undefined || ['', 'highlight', 'underline', 'strikethrough', 'bold', 'text-color', 'none'].includes(filter.markType)) &&
                 (filter.orphanOnly === undefined || typeof filter.orphanOnly === 'boolean');
             if (!value || !validFilter(value.filter) || !Array.isArray(value.presets) || value.presets.some(p => !p || typeof p.name !== 'string' || !validFilter(p.filter))) throw Error('invalid preferences');
             this.preferences = value;
@@ -2486,10 +2491,15 @@ export default class SideNote extends Plugin {
         if (existingComment) {
             this.hideSelectionToolbars();
             if (skipModal) {
-                await this.editComment(existingComment.timestamp, existingComment.comment, resolvedColor, markType, '批注样式已更新');
+                await this.editComment(existingComment.timestamp, existingComment.comment, markType === 'none' ? existingComment.color : resolvedColor, markType, markType === 'none' ? '已清除标记，批注已保留' : '批注样式已更新');
             } else {
                 new CommentModal(this.app, this, { mode: 'edit', comment: existingComment }).open();
             }
+            return;
+        }
+
+        if (markType === 'none') {
+            new Notice('请完整选中一条已有标记的原文；清除标记会保留批注。');
             return;
         }
 
@@ -2664,19 +2674,8 @@ export default class SideNote extends Plugin {
     }
 
     public getCommentHighlightPresentation(comment: Comment): { className: string, style?: string } {
-        let style: string | undefined;
-        if (comment.color) {
-            const rgb = this.hexToRgb(comment.color);
-            const opacity = this.settings.highlightOpacity;
-            style = `--sidenote-highlight-color: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity}); ` +
-                    `--sidenote-highlight-hover: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.15, 1)}); ` +
-                    `--sidenote-highlight-border: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.4, 1)});`;
-        }
-
-        return {
-            className: `sidenote-highlight sidenote-table-highlight${comment.isOrphaned ? ' orphaned' : ''} sidenote-mark-${comment.markType || 'highlight'}`,
-            style
-        };
+        const presentation = markPresentation(comment, this.settings.highlightOpacity);
+        return { ...presentation, className: `${presentation.className} sidenote-table-highlight` };
     }
 
     private unwrapRenderedTableHighlights(root: HTMLElement) {
@@ -3041,10 +3040,15 @@ export default class SideNote extends Plugin {
             if (existingComment) {
                 this.hideSelectionToolbars();
                 if (skipModal) {
-                    await this.editComment(existingComment.timestamp, existingComment.comment, resolvedColor, markType, '批注样式已更新');
+                    await this.editComment(existingComment.timestamp, existingComment.comment, markType === 'none' ? existingComment.color : resolvedColor, markType, markType === 'none' ? '已清除标记，批注已保留' : '批注样式已更新');
                 } else {
                     new CommentModal(this.app, this, { mode: 'edit', comment: existingComment }).open();
                 }
+                return;
+            }
+
+            if (markType === 'none') {
+                new Notice('请完整选中一条已有标记的原文；清除标记会保留批注。');
                 return;
             }
             
@@ -3121,6 +3125,10 @@ export default class SideNote extends Plugin {
         
         this.addSettingTab(new SideNoteSettingTab(this.app, this));
         this.registerView("sidenote-view", (leaf) => new SideNoteView(leaf, this));
+        registerMarkdownTool(this, {
+            comments: path => this.commentManager.getCommentsForFile(path),
+            openComment: timestamp => this.activateViewAndHighlightComment(timestamp),
+        });
 
         this.registerObsidianProtocolHandler("sidenote", async (params) => {
             const timestamp = parseInt(params.timestamp);
@@ -3144,6 +3152,9 @@ export default class SideNote extends Plugin {
         this.addCommand({ id: "activate-view", name: "在侧边栏打开批注视图", callback: () => this.activateView() });
         this.addCommand({ id: 'restore-drafts', name: '恢复未保存批注草稿', callback: () => this.showDrafts() });
         this.addCommand({ id: 'confirm-rebind', name: '确认重新绑定到选中文字', editorCallback: (editor, view) => { if (view.file) this.confirmRebind(editor, view.file.path); } });
+        this.addCommand({ id: 'open-selection-toolbar', name: '打开文字工具栏', editorCallback: editor => this.openSelectionToolbar(editor) });
+        this.addCommand({ id: 'red-selected-text', name: '为选中内容标红文字', editorCallback: (editor, view) => this.handleAddComment(editor, view, 'text-color', '#dc2626', true) });
+        this.addCommand({ id: 'clear-selected-mark', name: '清除所选标记（保留批注）', editorCallback: (editor, view) => this.handleAddComment(editor, view, 'none', undefined, true) });
         
         this.addCommand({
             id: "add-comment-to-selection", name: "为选中内容添加高亮", icon: "message-square",
@@ -3177,6 +3188,20 @@ export default class SideNote extends Plugin {
 
         this.registerEvent(this.app.workspace.on('editor-menu', (menu, editor, view) => {
             if (editor.somethingSelected()) {
+                const from = editor.getCursor('from'), to = editor.getCursor('to');
+                const selectedText = editor.getSelection();
+                const start = editor.posToOffset(from), end = editor.posToOffset(to);
+                const restoreSelection = () => {
+                    if (editor.getValue().slice(start, end) !== selectedText) {
+                        new Notice('原文已变化，请重新选择文字。');
+                        return false;
+                    }
+                    editor.setSelection(from, to);
+                    return true;
+                };
+                menu.addItem(item => item.setTitle('打开文字工具栏').setIcon('text-cursor-input').onClick(() => { if (restoreSelection()) this.openSelectionToolbar(editor); }));
+                menu.addItem(item => item.setTitle('文字标红').setIcon('baseline').onClick(() => { if (restoreSelection()) void this.handleAddComment(editor, view, 'text-color', '#dc2626', true); }));
+                menu.addItem(item => item.setTitle('清除所选标记（保留批注）').setIcon('eraser').onClick(() => { if (restoreSelection()) void this.handleAddComment(editor, view, 'none', undefined, true); }));
                 if (this.pendingRebind) menu.addItem(item => item.setTitle('绑定到待修复批注').setIcon('link').onClick(() => { if (view.file) this.confirmRebind(editor, view.file.path); }));
                 menu.addItem((item) => {
                     item.setTitle("添加高亮").setIcon("message-square").onClick(() => this.handleAddComment(editor, view, 'highlight', undefined, true));
@@ -3199,7 +3224,7 @@ export default class SideNote extends Plugin {
             });
         }));
 
-        this.addRibbonIcon("message-square", "Side note: Open in sidebar", () => { void this.activateView(); });
+        this.addRibbonIcon("message-square", this.manifest.name + "：打开批注侧栏", () => { void this.activateView(); });
         this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
             if (leaf && leaf.view instanceof MarkdownView) {
                 const file = leaf.view.file;
@@ -3509,6 +3534,15 @@ export default class SideNote extends Plugin {
         this.scheduleRenderedTableHighlights();
     }
 
+    public openSelectionToolbar(editor: Editor) {
+        const cm = (editor as EditorWithCodeMirror).cm;
+        if (!cm || cm.state.selection.main.empty) {
+            new Notice('请先在编辑模式选中文字。');
+            return;
+        }
+        cm.dom.dispatchEvent(new Event('sidenote-show-selection-toolbar'));
+    }
+
     private createSelectionToolbarPlugin() {
         // eslint-disable-next-line @typescript-eslint/no-this-alias -- Nested CodeMirror classes need the owning plugin instance.
         const plugin = this;
@@ -3518,21 +3552,31 @@ export default class SideNote extends Plugin {
             toolbar: HTMLElement | null = null;
             view: EditorView;
             hideToolbarEvent: () => void;
+            showToolbarEvent: () => void;
+            updateTimer: number | null = null;
+            explicitToolbar = false;
             
             constructor(view: EditorView) {
                 this.view = view;
                 this.hideToolbarEvent = () => this.hideToolbar();
                 document.addEventListener('sidenote-hide-selection-toolbar', this.hideToolbarEvent);
+                this.showToolbarEvent = () => {
+                    const selection = this.view.state.selection.main;
+                    if (!selection.empty) { this.explicitToolbar = true; this.showToolbar(selection); }
+                };
+                this.view.dom.addEventListener('sidenote-show-selection-toolbar', this.showToolbarEvent);
             }
 
             update(update: ViewUpdate) {
                 if (update.selectionSet || update.viewportChanged) {
-                    window.setTimeout(() => this.checkSelection(), 10);
+                    if (update.selectionSet) this.explicitToolbar = false;
+                    if (this.updateTimer !== null) window.clearTimeout(this.updateTimer);
+                    this.updateTimer = window.setTimeout(() => { this.updateTimer = null; this.checkSelection(); }, 10);
                 }
             }
 
             checkSelection() {
-                if (!plugin.settings.enableSelectionToolbar) {
+                if (!plugin.settings.enableSelectionToolbar && !this.explicitToolbar) {
                     this.hideToolbar();
                     return;
                 }
@@ -3575,11 +3619,16 @@ export default class SideNote extends Plugin {
                 if (!this.toolbar) {
                     this.toolbar = createDiv();
                     this.toolbar.className = "sidenote-selection-toolbar";
+                    this.toolbar.setAttribute('role', 'toolbar');
+                    this.toolbar.setAttribute('aria-label', '文字工具栏');
                     document.body.appendChild(this.toolbar);
                     this.buildToolbarUI();
                     
                     this.toolbar.addEventListener('mousedown', (e) => {
                         e.preventDefault();
+                    });
+                    this.toolbar.addEventListener('keydown', (event) => {
+                        if (event.key === 'Escape') { this.hideToolbar(); this.view.focus(); }
                     });
                 }
                 
@@ -3665,6 +3714,7 @@ export default class SideNote extends Plugin {
             }
 
             hideToolbar() {
+                this.explicitToolbar = false;
                 if (this.toolbar) {
                     this.toolbar.remove();
                     this.toolbar = null;
@@ -3676,6 +3726,8 @@ export default class SideNote extends Plugin {
 
             destroy() {
                 document.removeEventListener('sidenote-hide-selection-toolbar', this.hideToolbarEvent);
+                this.view.dom.removeEventListener('sidenote-show-selection-toolbar', this.showToolbarEvent);
+                if (this.updateTimer !== null) window.clearTimeout(this.updateTimer);
                 this.hideToolbar();
             }
 
@@ -3692,7 +3744,7 @@ export default class SideNote extends Plugin {
                     btn.setAttribute('aria-pressed', 'false');
                     setIcon(btn, iconName);
                     btn.onclick = async () => {
-                        const color = (this.toolbar?.querySelector('.sidenote-toolbar-color-picker') as HTMLInputElement)?.value || plugin.settings.highlightColor || "#FFC800";
+                        const color = markType === 'text-color' ? '#dc2626' : (this.toolbar?.querySelector('.sidenote-toolbar-color-picker') as HTMLInputElement)?.value || plugin.settings.highlightColor || "#FFC800";
                         await plugin.handleAddCommentFromEditorView(this.view, markType, color, skipModal);
                     };
                     return btn;
@@ -3705,11 +3757,17 @@ export default class SideNote extends Plugin {
                 const commentBtn = createBtn('message-square-plus', '添加批注', 'highlight', false);
                 commentBtn.setAttribute('data-sidenote-action', 'comment');
 
+                const redBtn = createBtn('baseline', '文字标红', 'text-color', true);
+                redBtn.setAttribute('data-sidenote-action', 'red');
+                const clearBtn = createBtn('eraser', '清除所选标记（保留批注）', 'none', true);
+
+                this.toolbar.appendChild(redBtn);
                 this.toolbar.appendChild(boldBtn);
                 this.toolbar.appendChild(highlighterBtn);
                 this.toolbar.appendChild(underlineBtn);
                 this.toolbar.appendChild(strikethroughBtn);
                 this.toolbar.appendChild(commentBtn);
+                this.toolbar.appendChild(clearBtn);
 
                 const existingIndicator = createSpan();
                 existingIndicator.className = 'sidenote-existing-indicator';
@@ -3968,17 +4026,12 @@ export default class SideNote extends Plugin {
                         if (!comment.isOrphaned && doc.sliceString(from, to) !== comment.selectedText) return;
                         if (from >= 0 && to <= doc.length && from < to) {
                             const attributes: Record<string, string> = { 'data-comment-timestamp': comment.timestamp.toString() };
-                            if (comment.color) {
-                                const rgb = plugin.hexToRgb(comment.color);
-                                const opacity = plugin.settings.highlightOpacity;
-                                attributes.style = `--sidenote-highlight-color: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity}); ` +
-                                                   `--sidenote-highlight-hover: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.15, 1)}); ` +
-                                                   `--sidenote-highlight-border: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.4, 1)});`;
-                            }
+                            const presentation = markPresentation(comment, plugin.settings.highlightOpacity);
+                            attributes.style = presentation.style;
                             decorationsArray.push({
                                 from, to,
                                 decoration: Decoration.mark({
-                                    class: `sidenote-highlight${comment.isOrphaned ? ' orphaned' : ''} sidenote-mark-${comment.markType || 'highlight'}`,
+                                    class: presentation.className,
                                     attributes: attributes
                                 })
                             });

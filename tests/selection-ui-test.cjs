@@ -1,0 +1,43 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const http = require('node:http');
+const assert = require('node:assert/strict');
+const { chromium } = require('playwright');
+const esbuild = require('esbuild');
+const root = path.resolve(__dirname, '..');
+fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
+esbuild.buildSync({ entryPoints: [path.join(__dirname, 'selection-ui-entry.ts')], bundle: true, outfile: path.join(root, 'artifacts/selection-ui.bundle.js'), platform: 'browser', external: ['buffer'], alias: { obsidian: path.join(__dirname, 'obsidian-mock.ts') }, logLevel: 'warning' });
+const css = fs.readFileSync(path.join(root, 'styles.css'), 'utf8') + fs.readFileSync(path.join(root, 'styles-selection.css'), 'utf8');
+const js = fs.readFileSync(path.join(root, 'artifacts/selection-ui.bundle.js'), 'utf8');
+const server = http.createServer((req,res) => { res.setHeader('Content-Type','text/html'); res.end('<!doctype html><meta charset="utf-8"><style>body{font:16px Arial;padding:80px}.cm-editor{width:700px;height:300px;border:1px solid #ccc}button{min-width:28px;min-height:28px}</style><style>' + css + '</style><script>' + js.replace(/<\/script/gi, '<\\/script') + '</script>'); });
+(async () => {
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await chromium.launch({ executablePath: process.env.BROWSER_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', headless:true });
+  const page = await browser.newPage({ viewport:{width:1000,height:700} });
+  try {
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.evaluate(() => window.selectionSetup());
+    const toolbar = page.getByRole('toolbar', { name:'文字工具栏' });
+    await toolbar.waitFor();
+    await toolbar.getByRole('button',{name:'文字标红',exact:true}).click();
+    assert.equal(await page.evaluate(() => window.selectionPlugin.comments[0].markType), 'text-color');
+    assert.equal(await page.evaluate(() => window.selectionPlugin.comments[0].color), '#dc2626');
+    assert.equal(await page.evaluate(() => window.selectionCM.state.sliceDoc(window.selectionCM.state.selection.main.from, window.selectionCM.state.selection.main.to)), '重点原文');
+    await page.evaluate(() => window.openSelectionTools());
+    await toolbar.getByRole('button',{name:'清除所选标记（保留批注）',exact:true}).click();
+    assert.deepEqual(await page.evaluate(() => ({type:window.selectionPlugin.comments[0].markType,body:window.selectionPlugin.comments[0].comment,count:window.selectionPlugin.comments.length})), {type:'none',body:'保留批注正文',count:1});
+    assert.equal(await page.evaluate(() => window.selectionPlugin.comments[0].color), '#dc2626');
+    await page.evaluate(() => window.selectionSetup(false));
+    assert.equal(await toolbar.count(), 0);
+    await page.evaluate(() => window.openSelectionTools()); await toolbar.waitFor();
+    await toolbar.getByRole('button',{name:'文字标红',exact:true}).focus(); await page.keyboard.press('Escape');
+    assert.equal(await toolbar.count(),0);
+    await page.evaluate(() => window.openSelectionTools());
+    await page.setViewportSize({width:375,height:700});
+    await page.evaluate(() => { window.openSelectionTools(); });
+    const box = await toolbar.boundingBox(); assert.ok(box.width <= 359, JSON.stringify(box));
+    assert.ok(box.x >= 0 && box.x + box.width <= 375, JSON.stringify(box));
+    await page.evaluate(() => window.selectionCM.destroy()); assert.equal(await toolbar.count(),0);
+    console.log('PASS selection toolbar foreground red, clear preserving annotation, explicit entry, Escape, narrow viewport and cleanup');
+  } finally { await browser.close(); server.close(); }
+})().catch(error => { console.error(error); process.exitCode=1; server.close(); });

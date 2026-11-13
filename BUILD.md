@@ -1,6 +1,6 @@
 # 构建与验证
 
-基于 Side-Comments-origin 1.0.10 的兼容增强版 1.1.0，原许可 GPL-3.0-only。保留原插件 ID，直接替换升级，不并行启用副本。
+Markdown Tool 1.2.0，基于 Side-Comments-origin 的兼容增强版，原许可 GPL-3.0-only。保留原插件 ID，直接替换升级，不并行启用副本。Markdown 解析／树操作／格式合并复用 MIT 许可的 gogoga Mind Map 0.34.0；许可见 `src/mindmap/vendor/LICENSE`。
 
 ```powershell
 npm ci --ignore-scripts
@@ -14,7 +14,11 @@ UI 测试使用锁定的 Playwright 开发依赖。默认浏览器为本机 Micr
 
 `scripts/verify-legacy.cjs <vault-path>` 是本次维护用的只读核对脚本，需要本地 private/backup-20261104/side-note-data 备份；真实备份不在发布包或源码包中。
 
-## 本次验收
+## 1.2.0 验证范围
+
+`npm test` 覆盖批注筛选、草稿、标记、Markdown 保真、重复节点、关系与总括子树、历史与冲突保存。`npm run test:ui` 顺序执行原批注回归、选区工具栏和导图／视图切换集成交互检查。测试不读取真实笔记。真实 iPad／安卓硬件未在本次环境验收。
+
+## 1.1.0 历史验收
 
 - 7 项核心行为测试通过。
 - 16 项隔离浏览器交互检查通过，包括窄侧栏、平板软键盘与横屏保存按钮。

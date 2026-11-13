@@ -1,9 +1,9 @@
 {
   "id": "side-comments-origin",
-  "name": "Side Comments origin · 增强版",
-  "version": "1.1.1",
-  "minAppVersion": "0.15.0",
-  "description": "Sidebar annotation and commenting with text highlights, hover previews, Markdown comments, image support, sidebar management, export, and backup features.",
+  "name": "Markdown Tool",
+  "version": "1.2.0",
+  "minAppVersion": "1.8.7",
+  "description": "Markdown annotations and synchronized outline/mind-map editing with labeled relationships and expandable summaries.",
   "author": "peyote",
   "isDesktopOnly": false
 }
