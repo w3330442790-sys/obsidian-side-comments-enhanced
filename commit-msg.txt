@@ -1,9 +1,0 @@
-fix(test): resolve drop targets from line geometry
-
-The drag interaction test failed on the Linux CI runner: posAtCoords returns
-null when the pointer sits in the top padding of the first line, so dropping at
-the very top edge was silently ignored. Resolve the target line from
-lineBlockAtHeight and documentTop instead, and assert the drop mode in the
-browser test before releasing the pointer.
-
-Tests: npm test, npm run lint, npm run build, tests/drag-ui.cjs on Edge and Chromium
