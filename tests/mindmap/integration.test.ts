@@ -216,6 +216,7 @@ test('one plugin registers both feature sets and keeps their settings in separat
     for (const id of ['open-table-tools', 'merge-selected-cells', 'split-cell', 'delete-selected-rows', 'delete-selected-columns']) {
       assert.ok(tableCommandIds.includes(id), id);
     }
+    assert.equal(tableCommandIds.filter((id: string) => ids.includes(id)).length, 0, 'table commands do not collide with host commands');
     assert.equal(excel.manifest, f.plugin.manifest, 'table commands join the host command namespace');
 
     assert.equal(typeof f.plugin.toolSettings.commentSortOrder, 'string');
