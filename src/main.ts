@@ -4,6 +4,8 @@ import { registerMarkdownTool } from './mindmap/view';
 import { Modal } from 'obsidian';
 import { filterComments, navigation, rebindComment, restoreComment, draftKey, DraftStore, Draft, Preferences, CommentFilter } from './enhancements';
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
+import { Menu } from 'obsidian';
+import type { MenuItem } from 'obsidian';
 import { exportNoteToDocx } from "./wordExporter";
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate, hoverTooltip } from "@codemirror/view";
 import { RangeSetBuilder, SelectionRange, StateEffect } from "@codemirror/state";
@@ -294,6 +296,8 @@ class SideNoteView extends ItemView {
         this.renderView();
         
         window.setTimeout(() => {
+            const wrapper = this.containerEl.querySelector<HTMLElement>(".sidenote-comments-list-wrapper");
+            if (wrapper) wrapper.scrollTop = 0;
             const commentEl = this.containerEl.querySelector(`[data-comment-timestamp="${timestamp}"]`);
             if (commentEl) {
                 // 修改点 1：改为 'nearest'，避免强制跳到中间
@@ -399,12 +403,20 @@ class SideNoteView extends ItemView {
     }
 
     private renderEnhancementControls(options: HTMLElement) {
+        // One compact row: filters, orphan actions, presets and the "more" menu.
         const controls = options.createDiv('sidenote-filters');
         const filter = this.plugin.preferences.filter;
+        const apply = (next: CommentFilter) => {
+            this.plugin.preferences.filter = { ...next };
+            this.activeCommentTimestamp = null;
+            void this.plugin.savePreferences().catch(() => new Notice('筛选保存失败，请重试'));
+            this.renderView();
+        };
         const style = controls.createEl('select', { attr: { 'aria-label': '筛选标记样式' } });
         style.createEl('option', { text: '全部样式', value: '' });
         MARK_TYPE_OPTIONS.forEach(x => style.createEl('option', { text: x.label, value: x.value }));
         style.value = filter.markType || '';
+        style.onchange = () => apply({ ...filter, markType: style.value as CommentFilter['markType'] });
         const colors = controls.createEl('select', { attr: { 'aria-label': '筛选标记颜色' } });
         colors.createEl('option', { text: '全部颜色', value: '' });
         const values = new Set(COLOR_PRESETS.map(c => c.value.toLowerCase()));
@@ -413,13 +425,6 @@ class SideNoteView extends ItemView {
         if (filter.color) values.add(filter.color.toLowerCase());
         values.forEach(value => colors.createEl('option', { value, text: COLOR_PRESETS.find(c => c.value === value)?.name || (value === '#ffc800' ? '默认黄色 #ffc800' : value) }));
         colors.value = filter.color || '';
-        const apply = (next: CommentFilter) => {
-            this.plugin.preferences.filter = { ...next };
-            this.activeCommentTimestamp = null;
-            void this.plugin.savePreferences().catch(() => new Notice('筛选保存失败，请重试'));
-            this.renderView();
-        };
-        style.onchange = () => apply({ ...filter, markType: style.value as CommentFilter['markType'] });
         colors.onchange = () => apply({ ...filter, color: colors.value });
         const orphans = controls.createEl('button', { text: `定位异常 ${this.plugin.commentManager.getCommentsForFile(this.file?.path || '').filter(c => c.isOrphaned).length}` });
         orphans.setAttribute('aria-pressed', String(!!filter.orphanOnly));
@@ -432,38 +437,18 @@ class SideNoteView extends ItemView {
             repair.onclick = () => { void this.plugin.repairOrphanedComments(); };
         }
         controls.createEl('button', { text: '显示全部' }).onclick = () => { this.searchQuery = ''; apply({}); };
-        const saved = options.createDiv('sidenote-presets');
-        const preset = saved.createEl('select', { attr: { 'aria-label': '常用筛选' } });
-        preset.createEl('option', { text: '选择常用筛选…', value: '' });
+        const preset = controls.createEl('select', { attr: { 'aria-label': '常用筛选' } });
+        preset.createEl('option', { text: '常用筛选…', value: '' });
         this.plugin.preferences.presets.forEach((p, i) => preset.createEl('option', { text: p.name, value: String(i) }));
         preset.onchange = () => { if (preset.value !== '') apply(this.plugin.preferences.presets[Number(preset.value)].filter); };
-        saved.createEl('button', { text: '保存筛选' }).onclick = () => {
-            const modal = new Modal(this.app);
-            modal.titleEl.setText('保存常用筛选');
-            const input = modal.contentEl.createEl('input', { placeholder: '例如：粉色下划线', attr: { 'aria-label': '筛选名称' } });
-            modal.contentEl.createEl('p', { text: '同名筛选会更新为当前条件。' });
-            modal.contentEl.createEl('button', { text: '保存', cls: 'mod-cta' }).onclick = async () => {
-                const name = input.value.trim(); if (!name) { input.focus(); return; }
-                const before = this.plugin.preferences.presets.slice();
-                this.plugin.preferences.presets = before.filter(p => p.name !== name).concat({ name, filter: { ...this.plugin.preferences.filter } });
-                try { await this.plugin.savePreferences(); modal.close(); this.renderView(); }
-                catch { this.plugin.preferences.presets = before; new Notice('筛选保存失败'); }
-            };
-            modal.open(); input.focus();
+        controls.createEl('button', { text: '更多', attr: { 'aria-label': '筛选与草稿操作' } }).onclick = (event: MouseEvent) => {
+            const menu = new Menu();
+            menu.addItem((item: MenuItem) => item.setTitle('保存当前筛选…').setIcon('save').onClick(() => this.openSavePresetModal()));
+            menu.addItem((item: MenuItem) => item.setTitle('管理常用筛选').setIcon('settings-2').onClick(() => this.openManagePresetsModal()));
+            menu.addSeparator();
+            menu.addItem((item: MenuItem) => item.setTitle('恢复未保存草稿').setIcon('rotate-ccw').onClick(() => this.plugin.showDrafts()));
+            menu.showAtMouseEvent(event);
         };
-        saved.createEl('button', { text: '管理筛选' }).onclick = () => {
-            const modal = new Modal(this.app); modal.titleEl.setText('管理常用筛选');
-            this.plugin.preferences.presets.forEach(p => {
-                const row = modal.contentEl.createDiv('sidenote-preset-row'); row.createSpan({ text: p.name });
-                row.createEl('button', { text: '删除' }).onclick = async () => {
-                    const before = this.plugin.preferences.presets;
-                    this.plugin.preferences.presets = before.filter(x => x !== p);
-                    try { await this.plugin.savePreferences(); row.remove(); this.renderView(); }
-                    catch { this.plugin.preferences.presets = before; new Notice('删除筛选失败'); }
-                };
-            }); modal.open();
-        };
-        saved.createEl('button', { text: '恢复草稿' }).onclick = () => this.plugin.showDrafts();
         if (this.plugin.pendingRebind) {
             const bar = this.containerEl.createDiv('sidenote-rebind-bar');
             bar.createSpan({ text: '请在原笔记编辑模式选中文字，再确认绑定。' });
@@ -477,6 +462,34 @@ class SideNoteView extends ItemView {
             };
             bar.createEl('button', { text: '取消绑定' }).onclick = () => { this.plugin.pendingRebind = null; this.plugin.refreshViews(); };
         }
+    }
+
+    private openSavePresetModal(): void {
+        const modal = new Modal(this.app);
+        modal.titleEl.setText('保存常用筛选');
+        const input = modal.contentEl.createEl('input', { placeholder: '例如：粉色下划线', attr: { 'aria-label': '筛选名称' } });
+        modal.contentEl.createEl('p', { text: '同名筛选会更新为当前条件。' });
+        modal.contentEl.createEl('button', { text: '保存', cls: 'mod-cta' }).onclick = async () => {
+            const name = input.value.trim(); if (!name) { input.focus(); return; }
+            const before = this.plugin.preferences.presets.slice();
+            this.plugin.preferences.presets = before.filter(p => p.name !== name).concat({ name, filter: { ...this.plugin.preferences.filter } });
+            try { await this.plugin.savePreferences(); modal.close(); this.renderView(); }
+            catch { this.plugin.preferences.presets = before; new Notice('筛选保存失败'); }
+        };
+        modal.open(); input.focus();
+    }
+
+    private openManagePresetsModal(): void {
+        const modal = new Modal(this.app); modal.titleEl.setText('管理常用筛选');
+        this.plugin.preferences.presets.forEach(p => {
+            const row = modal.contentEl.createDiv('sidenote-preset-row'); row.createSpan({ text: p.name });
+            row.createEl('button', { text: '删除' }).onclick = async () => {
+                const before = this.plugin.preferences.presets;
+                this.plugin.preferences.presets = before.filter(x => x !== p);
+                try { await this.plugin.savePreferences(); row.remove(); this.renderView(); }
+                catch { this.plugin.preferences.presets = before; new Notice('删除筛选失败'); }
+            };
+        }); modal.open();
     }
 
     private renderNavigation() {
@@ -562,10 +575,18 @@ class SideNoteView extends ItemView {
 
         this.visibleComments = commentsForFile;
         this.renderNavigation();
-        if (commentsForFile.length > 0) {
+        // Keep the clicked annotation pinned to the top of the sidebar instead of
+        // leaving it at its document position (which is often at the bottom).
+        const activeComment = this.activeCommentTimestamp === null
+            ? undefined
+            : this.plugin.commentManager.getCommentsForFile(this.file.path).find(c => c.timestamp === this.activeCommentTimestamp);
+        const displayComments = activeComment
+            ? [activeComment, ...commentsForFile.filter(c => c.timestamp !== activeComment.timestamp)]
+            : commentsForFile;
+        if (displayComments.length > 0) {
             const listEl = container.createDiv("sidenote-comments-container");
             
-            for (const comment of commentsForFile) {
+            for (const comment of displayComments) {
                 const commentEl = listEl.createDiv("sidenote-comment-item");
                 commentEl.setAttribute("data-comment-timestamp", comment.timestamp.toString());
                 commentEl.tabIndex = 0;

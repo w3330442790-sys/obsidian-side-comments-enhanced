@@ -77,12 +77,37 @@ const server = http.createServer((req, res) => {
       assert.equal(await page.getByRole('button', { name: '下一条', exact: true }).isDisabled(), true);
     });
     await check('named filter persists and restores after reload', async () => {
-      await page.getByRole('button', { name: '保存筛选', exact: true }).click(); await page.getByLabel('筛选名称').fill('粉色下划线');
+      await page.getByRole('button', { name: '筛选与草稿操作', exact: true }).click();
+      await page.getByRole('button', { name: '保存当前筛选…', exact: true }).click();
+      await page.getByLabel('筛选名称').fill('粉色下划线');
       await page.locator('.modal-container').getByRole('button', { name: '保存', exact: true }).click();
       await page.getByRole('button', { name: '显示全部', exact: true }).click();
       await page.getByLabel('常用筛选', { exact: true }).selectOption('0'); assert.equal(await page.locator('.sidenote-comment-item').count(), 2);
       await page.evaluate(async () => { window.plugin.preferences = { filter: {}, presets: [] }; await window.plugin.loadPreferences(); window.view.renderView(); });
       assert.equal(await page.getByLabel('筛选标记样式').inputValue(), 'underline');
+    });
+    await reset();
+    await check('highlighting an annotation pins it to the top of the sidebar', async () => {
+      await page.evaluate(() => window.view.highlightComment(3));
+      await page.waitForFunction(() => document.querySelector('.sidenote-comment-item')?.getAttribute('data-comment-timestamp') === '3');
+      const order = await page.locator('.sidenote-comment-item').evaluateAll(items => items.map(item => item.getAttribute('data-comment-timestamp')));
+      assert.equal(order[0], '3');
+      assert.equal(order.includes('1'), true);
+      assert.equal(await page.evaluate(() => document.querySelector('.sidenote-comments-list-wrapper').scrollTop), 0);
+    });
+    await check('compact controls keep filters in one row and move presets into the more menu', async () => {
+      const layout = await page.evaluate(() => {
+        const options = document.querySelector('.sidenote-options');
+        const filters = document.querySelector('.sidenote-filters');
+        return { optionsChildren: options ? options.children.length : -1, hasPresetsRow: !!document.querySelector('.sidenote-presets'), filterButtons: filters ? filters.querySelectorAll('button').length : -1 };
+      });
+      assert.equal(layout.optionsChildren, 2);
+      assert.equal(layout.hasPresetsRow, false);
+      assert.equal(await page.getByRole('button', { name: '保存筛选', exact: true }).count(), 0);
+      await page.getByRole('button', { name: '筛选与草稿操作', exact: true }).click();
+      assert.equal(await page.getByRole('button', { name: '保存当前筛选…', exact: true }).count(), 1);
+      assert.equal(await page.getByRole('button', { name: '恢复未保存草稿', exact: true }).count(), 1);
+      await page.evaluate(() => document.querySelector('.menu')?.remove());
     });
     await reset();
     await check('draft survives close and restores text, color and style', async () => {
@@ -139,7 +164,8 @@ const server = http.createServer((req, res) => {
       await page.evaluate(() => window.openAdd(window.noteText.indexOf('新选原文'), '新选原文')); await page.locator('.sidenote-modal-textarea').fill('新建未保存内容');
       await page.getByLabel('关闭批注窗口', { exact: true }).click();
       await page.evaluate(() => window.setup());
-      await page.getByRole('button', { name: '恢复草稿', exact: true }).click();
+      await page.getByRole('button', { name: '筛选与草稿操作', exact: true }).click();
+      await page.getByRole('button', { name: '恢复未保存草稿', exact: true }).click();
       await page.getByRole('button', { name: '恢复编辑', exact: true }).click();
       assert.equal(await page.locator('.sidenote-modal-textarea').inputValue(), '新建未保存内容');
       await page.getByRole('button', { name: '保存', exact: true }).click();

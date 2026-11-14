@@ -52,6 +52,32 @@ export class Notice {
     constructor(message: any, timeout?: number) { (window as any).notices.push(typeof message === 'string' ? message : 'notice'); }
     hide() {}
 }
+export class Menu {
+    items: Array<{ title?: string; callback?: () => void }> = [];
+    addItem(cb: (item: any) => void) {
+        const item: any = {
+            setTitle: (title: string) => { item.title = title; return item; },
+            setIcon: () => item,
+            onClick: (callback: () => void) => { item.callback = callback; return item; },
+        };
+        cb(item);
+        this.items.push(item);
+        return this;
+    }
+    addSeparator() { return this; }
+    showAtMouseEvent() {
+        const menu = document.createElement('div');
+        menu.className = 'menu';
+        for (const item of this.items) {
+            const button = document.createElement('button');
+            button.textContent = item.title ?? '';
+            button.onclick = () => { item.callback?.(); menu.remove(); };
+            menu.appendChild(button);
+        }
+        document.body.appendChild(menu);
+        return this;
+    }
+}
 export class PluginSettingTab {}
 export class Setting {}
 export class MarkdownRenderChild extends Component {}
