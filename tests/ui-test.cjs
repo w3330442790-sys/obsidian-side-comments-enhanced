@@ -104,6 +104,10 @@ const server = http.createServer((req, res) => {
       assert.equal(layout.optionsChildren, 2);
       assert.equal(layout.hasPresetsRow, false);
       assert.equal(await page.getByRole('button', { name: '保存筛选', exact: true }).count(), 0);
+      await page.evaluate(() => { document.querySelector('.sidenote-view-container').style.width = '600px'; });
+      const filterHeight = await page.evaluate(() => document.querySelector('.sidenote-filters').getBoundingClientRect().height);
+      assert.ok(filterHeight < 50, `filters should stay on one row at 600px, got ${filterHeight}`);
+      await page.evaluate(() => { document.querySelector('.sidenote-view-container').style.width = '320px'; });
       await page.getByRole('button', { name: '筛选与草稿操作', exact: true }).click();
       assert.equal(await page.getByRole('button', { name: '保存当前筛选…', exact: true }).count(), 1);
       assert.equal(await page.getByRole('button', { name: '恢复未保存草稿', exact: true }).count(), 1);

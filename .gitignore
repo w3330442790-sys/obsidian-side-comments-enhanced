@@ -32,3 +32,6 @@ task_plan.md
 findings.md
 progress.md
 docs/superpowers/
+
+# Local nested checkouts and worktrees
+.worktrees/
