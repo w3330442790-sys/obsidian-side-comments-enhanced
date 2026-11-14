@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Side Comments �?Notion-Level UI
+   Side Comments — Notion-Level UI
    Design System: Clean, minimal, sophisticated
    ========================================================================== */
 
@@ -169,7 +169,7 @@ body {
 }
 
 /* ==========================================================================
-   2. Comment Card �?Notion-Style
+   2. Comment Card — Notion-Style
    ========================================================================== */
 
 @keyframes sc-card-in {
@@ -509,7 +509,7 @@ button.sidenote-menu-button {
    4. Editor Highlights & Tooltip
    ========================================================================== */
 
-/* ── 基础高亮（默�?highlight 模式）── */
+/* ── 基础高亮（默认 highlight 模式）── */
 .sidenote-highlight {
     background-color: var(--sidenote-highlight-color, rgba(255, 208, 0, 0.18));
     border-bottom: 2px solid var(--sidenote-highlight-border, rgba(255, 208, 0, 0.55));
@@ -533,7 +533,7 @@ button.sidenote-menu-button {
     animation: sidenote-jump-pulse 0.7s ease-out 2;
 }
 
-/* 孤立批注（找不到原文�?/
+/* 孤立批注（找不到原文）*/
 .sidenote-highlight.orphaned {
     background-color: rgba(239, 68, 68, 0.1);
     border-bottom: 2px dashed rgba(239, 68, 68, 0.5);
@@ -542,7 +542,7 @@ button.sidenote-menu-button {
     background-color: rgba(239, 68, 68, 0.18);
 }
 
-/* ── 下划线模�?── */
+/* ── 下划线模式 ── */
 .sidenote-highlight.sidenote-mark-underline {
     background-color: transparent;
     border-bottom: 2px solid var(--sidenote-highlight-border, rgba(255, 208, 0, 0.7));
@@ -551,7 +551,7 @@ button.sidenote-menu-button {
     background-color: var(--sidenote-highlight-hover, rgba(255, 208, 0, 0.18));
 }
 
-/* ── 删除线模�?── */
+/* ── 删除线模式 ── */
 .sidenote-highlight.sidenote-mark-strikethrough {
     background-color: transparent;
     border-bottom: none;
@@ -590,7 +590,7 @@ button.sidenote-menu-button {
 }
 
 /* ==========================================================================
-   Hover Tooltip �?Notion-style comment card
+   Hover Tooltip — Notion-style comment card
    ========================================================================== */
 
 .cm-tooltip.sidenote-tooltip-host {
@@ -639,7 +639,7 @@ button.sidenote-menu-button {
     border-color: rgba(255,255,255,0.08);
 }
 
-/* 左侧颜色�?*/
+/* 左侧颜色条 */
 .sidenote-tooltip-accent {
     width: 3px;
     flex-shrink: 0;
@@ -648,7 +648,7 @@ button.sidenote-menu-button {
     opacity: 0.85;
 }
 
-/* 右侧主体：内�?+ meta */
+/* 右侧主体：内容 + meta */
 .sidenote-tooltip-body {
     display: flex;
     flex-direction: column;
@@ -670,7 +670,7 @@ button.sidenote-menu-button {
 }
 .sidenote-tooltip-content p:last-child { margin-bottom: 0; }
 
-/* 底部 meta �?*/
+/* 底部 meta 行 */
 .sidenote-tooltip-meta {
     display: flex;
     align-items: center;
@@ -792,7 +792,7 @@ button.sidenote-menu-button {
 }
 
 /* ==========================================================================
-   7. Selection Floating Toolbar �?Notion Block Toolbar Style
+   7. Selection Floating Toolbar — Notion Block Toolbar Style
    ========================================================================== */
 
 @keyframes sc-toolbar-pop {
@@ -1058,7 +1058,7 @@ button.sidenote-color-circle:not(.custom-color) {
     border-color: rgba(255,255,255,0.08);
 }
 
-/* ── 顶部栏（可拖�?+ 引用 chip + 关闭按钮）── */
+/* ── 顶部栏（可拖动 + 引用 chip + 关闭按钮）── */
 .sidenote-modal-topbar {
     display: flex;
     align-items: center;
@@ -1141,7 +1141,7 @@ button.sidenote-color-circle:not(.custom-color) {
     min-width: 0;
 }
 
-/* 引用 chip（在顶部栏内�?*/
+/* 引用 chip（在顶部栏内） */
 .sidenote-modal-quote {
     display: flex;
     align-items: center;
@@ -1203,7 +1203,7 @@ button.sidenote-color-circle:not(.custom-color) {
     color: var(--text-normal);
 }
 
-/* ── 输入�?── */
+/* ── 输入区 ── */
 .sidenote-modal-textarea {
     width: 100%;
     min-height: 40px;
@@ -1233,7 +1233,7 @@ button.sidenote-color-circle:not(.custom-color) {
     margin-top: 8px;
 }
 
-/* ── 操作�?── */
+/* ── 操作栏 ── */
 .sidenote-modal-actionbar {
     display: flex;
     align-items: center;
@@ -1829,8 +1829,8 @@ body.is-mobile .sidenote-selection-toolbar {
 .mt-md-toolbar.is-readonly .mt-md-toolbar-btn { opacity: 0.45; }
 
 /* --- Drag handles that move blocks and re-anchor annotations --- */
-.cm-mt-drag-gutter { width: 18px; }
-.cm-mt-drag-gutter .cm-gutterElement { display: flex; align-items: center; justify-content: center; }
+.mt-drag-gutter { width: 18px; }
+.mt-drag-gutter .cm-gutterElement { display: flex; align-items: center; justify-content: center; }
 .mt-drag-handle {
     display: flex;
     align-items: center;
@@ -1839,17 +1839,17 @@ body.is-mobile .sidenote-selection-toolbar {
     height: 100%;
     min-height: 18px;
     color: var(--text-faint);
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1;
     cursor: grab;
-    opacity: 0;
+    opacity: 0.35;
     transition: opacity 90ms ease-in-out;
     touch-action: none;
     user-select: none;
 }
-.cm-mt-drag-gutter:hover .mt-drag-handle,
+.mt-drag-gutter:hover .mt-drag-handle,
 .mt-drag-handle:focus-visible,
-.mt-drag-handle:hover { opacity: 0.75; color: var(--text-muted); }
+.mt-drag-handle:hover { opacity: 0.9; color: var(--text-muted); }
 .mt-drag-handle:hover { opacity: 1; }
 .mt-drag-active .mt-drag-handle { cursor: grabbing; }
 body.mt-drag-cursor,
@@ -1871,7 +1871,7 @@ body.mt-drag-cursor * { cursor: grabbing !important; }
     border-radius: 2px;
 }
 .mt-drop-indicator.mt-drop-child::after {
-    content: '?';
+    content: '↳';
     position: absolute;
     right: 6px;
     top: 3px;
@@ -1881,7 +1881,7 @@ body.mt-drag-cursor * { cursor: grabbing !important; }
 }
 
 @media (pointer: coarse) {
-    .cm-mt-drag-gutter { width: 26px; }
-    .mt-drag-handle { opacity: 0.55; min-height: 24px; font-size: 13px; }
+    .mt-drag-gutter { width: 26px; }
+    .mt-drag-handle { opacity: 0.6; min-height: 24px; font-size: 14px; }
     .mt-md-toolbar-btn { min-width: 34px; height: 34px; }
 }

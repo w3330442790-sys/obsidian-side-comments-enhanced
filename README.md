@@ -2,7 +2,7 @@
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.3.1**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**1.3.2**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`personal-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest)

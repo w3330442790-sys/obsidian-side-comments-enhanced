@@ -67,6 +67,24 @@ const server = http.createServer((req, res) => {
       assert.equal(await page.locator('.mt-drag-handle[data-mt-block-start="7"]').count(), 0);
     });
 
+    await check('the drag gutter is wide enough and its handles are visible', async () => {
+      await setup('# A\n\nalpha\n');
+      const style = await page.evaluate(() => {
+        const gutter = document.querySelector('.mt-drag-gutter');
+        const handle = document.querySelector('.mt-drag-handle');
+        if (!gutter || !handle) return null;
+        return {
+          gutterWidth: parseFloat(getComputedStyle(gutter).width),
+          handleOpacity: parseFloat(getComputedStyle(handle).opacity),
+          handleHeight: handle.getBoundingClientRect().height,
+        };
+      });
+      assert.ok(style, 'gutter and handle must exist');
+      assert.ok(style.gutterWidth >= 16, JSON.stringify(style));
+      assert.ok(style.handleOpacity > 0, JSON.stringify(style));
+      assert.ok(style.handleHeight >= 10, JSON.stringify(style));
+    });
+
     await check('dragging a heading below the next section reorders the whole section', async () => {
       await setup('# A\n\nalpha\n\n# B\n\nbeta\n');
       await dragTo(await handleBox(0), await linePoint(7, 0.85), 'after');
