@@ -47,7 +47,7 @@ async function boot(seed: Record<string, string> = {}) {
             registerView(type,create){ this.views.set(type,create); this.register(()=>this.views.delete(type)); }
             registerExtensions(exts,type){ for(const ext of exts) this.extensions.set(ext,type); this.register(()=>exts.forEach(ext=>this.extensions.delete(ext))); }
             addCommand(command){ this.commands.push(command); this.register(()=>this.commands.splice(this.commands.indexOf(command),1)); }
-            addSettingTab(tab){ this.tabs.push(tab); this.register(()=>this.tabs.splice(this.tabs.indexOf(tab),1)); }
+            addSettingTab(tab){ this.tabs.push(tab); this.register(()=>this.tabs.splice(this.tabs.indexOf(tab),1)); tab.update?.(); }
             addRibbonIcon(){ return {remove(){}}; }
             addStatusBarItem(){ return {setText(){},remove(){}}; }
             registerHoverLinkSource(){}
@@ -59,6 +59,10 @@ async function boot(seed: Record<string, string> = {}) {
           const classes={Component,Plugin,WorkspaceLeaf,FileView,TextFileView:FileView,ItemView:FileView,MarkdownView};
           globalThis.__MockMarkdownView=MarkdownView;
           for(const name of ['AbstractInputSuggest','FuzzySuggestModal','PluginSettingTab','Modal','SuggestModal','Setting','Menu','MenuItem','MarkdownRenderChild','Scope','TAbstractFile','TFile','TFolder','App','Notice']) classes[name]=class extends Component { constructor(...args){ super(); this.app=args[0]; } register(){} };
+          classes.PluginSettingTab = class extends Component {
+            constructor(app,plugin){ super(); this.app=app; this.plugin=plugin; this.name=plugin.manifest.name; this.id=plugin.manifest.id; }
+            update(){ this.definitions=this.getSettingDefinitions?.() ?? []; }
+          };
           class TFile extends classes.TAbstractFile { constructor(path){ super(); this.path=path; this.name=path; this.basename=path.replace(/\\.[^.]+$/,''); this.extension=path.split('.').pop()||''; this.parent=null; } }
           class TFolder extends classes.TAbstractFile { constructor(path){ super(); this.path=path; this.name=path; this.children=[]; } }
           classes.TFile=TFile; classes.TFolder=TFolder;
@@ -200,6 +204,8 @@ test('one plugin registers both feature sets and keeps their settings in separat
       assert.ok(ids.includes(id), id);
     }
     assert.equal(f.plugin.tabs.length, 2, 'annotation tab + fused mind-map tab');
+    assert.ok(f.plugin.tabs[0].definitions.length > 0, 'annotation settings render immediately after addSettingTab');
+    assert.equal(f.plugin.tabs[0].name, 'Taube Markdown Tool');
     assert.match(f.plugin.tabs[1].name, /思维导图/, 'mind-map tab has its own nav label');
 
     assert.equal(typeof f.plugin.toolSettings.commentSortOrder, 'string');

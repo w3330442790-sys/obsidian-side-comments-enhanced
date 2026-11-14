@@ -3332,14 +3332,6 @@ export default class SideNote extends MindmapPluginBase {
     }
 
     async onload() {
-        // Register the annotation settings page first so Obsidian's plugin
-        // "Options" button (the first tab with this plugin id) opens the
-        // original settings; the fused mind-map tab follows during super.onload.
-        this.addSettingTab(new SideNoteSettingTab(this.app, this));
-        // The fused mind-map editor is the base plugin: it registers the full
-        // Weilanx/gogoga canvas, .wmind/.xmind views, Markdown switch and
-        // commands before the annotation side is layered on top.
-        await super.onload();
         await migrateLegacyData(this.app, this.manifest.id, ['personal-markdown-tool', 'side-comments-origin'], ['data.json', 'enhancements.json']);
         // Heal orphaned floating windows and stale cross-reload modal references first.
         CommentModal.closeActive();
@@ -3349,6 +3341,15 @@ export default class SideNote extends MindmapPluginBase {
         this.drafts = new DraftStore(window.localStorage, identity);
         this.commentManager = new CommentManager(this.comments);
         await this.migrateComments();
+        // Obsidian calls getSettingDefinitions() synchronously inside
+        // addSettingTab(), so the annotation tab must come after toolSettings
+        // and commentManager are loaded. Adding it first also keeps the plugin
+        // "Options" button on the original annotation settings.
+        this.addSettingTab(new SideNoteSettingTab(this.app, this));
+        // The fused mind-map editor is the base plugin: it registers the full
+        // Weilanx/gogoga canvas, .wmind/.xmind views, Markdown switch and
+        // commands (and its own settings tab, listed after the annotation one).
+        await super.onload();
         this.registerEditorExtension([
             this.createSelectionToolbarPlugin(),
             ...this.createHighlightPlugin(),

@@ -1,6 +1,6 @@
 {
   "name": "taube-markdown-tool",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Markdown annotations, block editing, a text toolbar and a full fused mind-map canvas (.wmind/.xmind).",
   "main": "main.js",
   "scripts": {

@@ -4,7 +4,7 @@
 
 **2.0.0 起，原先独立的“融合 Mindmap（personal-mindmap）”完整并入本插件**：批注、正文拖动、Markdown 工具栏与完整思维导图画布（Markdown 一键切换、`.wmind`、`.xmind`）只需安装一个插件。旧的 `personal-mindmap` 插件请停用，数据和标签页会自动衔接。
 
-- 当前版本：**2.0.0**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**2.0.1**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)

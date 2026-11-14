@@ -1,6 +1,6 @@
 # 构建与验证
 
-Taube Markdown Tool 2.0.0，基于 Side-Comments-origin 的兼容增强版（GPL-3.0-only），并内置原“融合 Mindmap（personal-mindmap）”完整画布。插件 ID 为 `taube-markdown-tool`，从旧 ID 的设置目录迁移；不并行启用副本。完整画布复用 MIT 许可的 Weilanx Mind Map 0.2.0 与 gogoga Mind Map 0.34.0 源码，许可与上游提交见 `vendor/personal-mindmap/`、`vendor/personal-mindmap/UPSTREAM.md` 和 `THIRD_PARTY_NOTICES.md`。
+Taube Markdown Tool 2.0.1，基于 Side-Comments-origin 的兼容增强版（GPL-3.0-only），并内置原“融合 Mindmap（personal-mindmap）”完整画布。插件 ID 为 `taube-markdown-tool`，从旧 ID 的设置目录迁移；不并行启用副本。完整画布复用 MIT 许可的 Weilanx Mind Map 0.2.0 与 gogoga Mind Map 0.34.0 源码，许可与上游提交见 `vendor/personal-mindmap/`、`vendor/personal-mindmap/UPSTREAM.md` 和 `THIRD_PARTY_NOTICES.md`。
 
 ```powershell
 npm ci --ignore-scripts
