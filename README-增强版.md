@@ -1,10 +1,10 @@
 # Taube Markdown Tool（原 Side Comments 增强版）
 
-当前版本 **1.6.1**。新增正文拖动调整层级、Markdown 语法工具栏、文字标红、右键工具栏、撤销重做、搜索折叠与冲突恢复。检测到 **融合 Mindmap（personal-mindmap）0.2.0+ 已启用**时，不再显示本插件自己的“思维导图”按钮和导图视图，旧导图标签会自动转交；只保留批注、拖动与工具栏。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
+当前版本 **1.6.2**。新增正文拖动调整层级、Markdown 语法工具栏、文字标红、右键工具栏、撤销重做、搜索折叠与冲突恢复。检测到 **融合 Mindmap（personal-mindmap）0.2.0+ 已启用**时，不再显示本插件自己的“思维导图”按钮和导图视图，旧导图标签会自动转交；只保留批注、拖动与工具栏。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.6.1**
+- 当前版本：**1.6.2**
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)

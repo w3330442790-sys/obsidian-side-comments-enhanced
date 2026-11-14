@@ -1,6 +1,14 @@
 import { ItemView, Notice, type App, type Plugin, type WorkspaceLeaf } from 'obsidian';
 import { LEGACY_MINDMAP_VIEW, PERSONAL_MINDMAP_VIEW, personalMindmapProvidesView } from './compat';
 
+function hasViewType(app: App, type: string): boolean {
+    const registry = (app as App & {
+        viewRegistry?: { getViewCreatorByType?: (viewType: string) => unknown };
+    }).viewRegistry;
+    if (typeof registry?.getViewCreatorByType !== 'function') return true;
+    try { return !!registry.getViewCreatorByType(type); } catch { return true; }
+}
+
 /**
  * Registered only while the personal mind-map plugin owns the mind-map UX.
  *
@@ -50,11 +58,7 @@ export class LegacyMindmapBridgeView extends ItemView {
     }
 
     private hasViewType(type: string): boolean {
-        const registry = (this.hostApp as App & {
-            viewRegistry?: { getViewCreatorByType?: (viewType: string) => unknown };
-        }).viewRegistry;
-        if (typeof registry?.getViewCreatorByType !== 'function') return true;
-        try { return !!registry.getViewCreatorByType(type); } catch { return true; }
+        return hasViewType(this.hostApp, type);
     }
 
     private async redirect(toPersonal: boolean): Promise<void> {
@@ -91,6 +95,38 @@ export class LegacyMindmapBridgeView extends ItemView {
     }
 }
 
+/**
+ * Existing tabs are already alive when a plugin reloads; their stored view type
+ * may not be re-instantiated until the workspace is restored. Scan the actual
+ * leaves as well, so the currently open duplicate canvas is replaced immediately.
+ */
+export function redirectLegacyMindmapLeaves(app: App): void {
+    let attempts = 0;
+    const run = () => {
+        const personalReady = personalMindmapProvidesView(app) && hasViewType(app, PERSONAL_MINDMAP_VIEW);
+        // Wait for the personal view to register before touching open leaves;
+        // after about one second fall back to Markdown rather than leaving a dead tab.
+        if (!personalReady && attempts++ < 10) {
+            window.setTimeout(run, 100);
+            return;
+        }
+        app.workspace.iterateAllLeaves(leaf => {
+            let state: { type?: string; state?: { file?: unknown } };
+            try { state = leaf.getViewState(); } catch { return; }
+            if (state.type !== LEGACY_MINDMAP_VIEW || typeof state.state?.file !== 'string') return;
+            const file = state.state.file;
+            const active = app.workspace.getMostRecentLeaf() === leaf;
+            void leaf.setViewState({
+                type: personalReady ? PERSONAL_MINDMAP_VIEW : 'markdown',
+                state: personalReady ? { file } : { file, mode: 'source' },
+                active,
+            });
+        });
+    };
+    app.workspace.onLayoutReady(run);
+}
+
 export function registerLegacyMindmapBridge(plugin: Plugin, app: App): void {
     plugin.registerView(LEGACY_MINDMAP_VIEW, leaf => new LegacyMindmapBridgeView(leaf, app));
+    redirectLegacyMindmapLeaves(app);
 }

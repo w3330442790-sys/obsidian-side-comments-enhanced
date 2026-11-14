@@ -2,7 +2,7 @@
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.6.1**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**1.6.2**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)
@@ -61,10 +61,10 @@ Markdown 是正文来源；关联线、总括子树与节点标识保存在文�
 - 无法确定唯一位置的批注继续保留为定位异常，绝不静默绑到错误文字上；修复成功后会同步刷新上下文、标题路径与出现序号，降低以后再次异常的概率。
 - 重复文本现在优先在所属标题段内判定，段内唯一即可恢复，减少标题结构内重复词造成的误判。
 
-1.6.1 避免与融合 Mindmap 重复：
+1.6.1–1.6.2 避免与融合 Mindmap 重复：
 
 - 检测到 **融合 Mindmap（personal-mindmap）0.2.0 或更新版本已启用**时，本插件不再注册第二个“思维导图”按钮，也不显示自己的导图视图；右上角只保留融合 Mindmap 的入口。
-- 工作区里已经打开的旧 `markdown-tool-mindmap` 标签会自动转交到融合 Mindmap 的同一文件，不再停留在第二张导图画布；如果融合 Mindmap 未启用或版本较旧，仍保留本插件原有导图，避免失去入口。
+- 工作区里已经打开的旧 `markdown-tool-mindmap` 标签会自动转交到融合 Mindmap 的同一文件，不再停留在第二张导图画布；1.6.2 起会主动扫描当前工作区，重载插件时就把已打开的旧标签切过去，不必等应用重启。如果融合 Mindmap 未启用或版本较旧，仍保留本插件原有导图，避免失去入口。
 - 批注、拖动、Markdown 工具栏和设置不变。顶部两个脑图按钮、以及旧导图画布与融合 Mindmap 同时出现的问题由此消除。
 
 1.6.0 侧栏体验调整：
