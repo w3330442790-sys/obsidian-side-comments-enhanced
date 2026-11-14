@@ -210,7 +210,11 @@ async function check(name,fn){await fn();results.push(name);console.log('PASS '+
   await page.locator('.wm-ctx').getByRole('button',{name:'概括转分支（可继续分点）',exact:true}).click();
   await page.waitForFunction(()=>window.__testDoc.root.children.some(n=>n.text==='总括'&&n.children?.some(c=>c.id==='edit')));
   await page.getByLabel('topic text').press('Enter');
-  await command(page,'addChild');await page.keyboard.type('复习分点');await page.keyboard.press('Enter');
+  await command(page,'addChild');
+  // addChild focuses the new inline editor on the next animation frame; typing
+  // before that frame lands is a CI-only race.
+  await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='topic text');
+  await page.keyboard.type('复习分点');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>window.__testDoc.root.children.some(n=>n.text==='总括'&&n.children?.some(c=>c.text==='复习分点')));
  });
  await check('relationship label opens an inline text editor',async()=>{
