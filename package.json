@@ -1,6 +1,6 @@
 {
   "name": "taube-markdown-tool",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Markdown annotations and synchronized outline/mind-map editing.",
   "main": "main.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "test:ui": "node tests/ui-test.cjs && node tests/selection-ui-test.cjs && node tests/mindmap-ui.cjs && node tests/drag-ui.cjs && node tests/toolbar-ui.cjs"
   },
   "keywords": [],
-  "author": "",
+  "author": "taube",
   "license": "GPL-3.0-only",
   "devDependencies": {
     "@eslint/js": "^9.30.1",

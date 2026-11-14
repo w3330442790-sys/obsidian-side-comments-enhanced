@@ -2,7 +2,7 @@
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.4.0**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**1.4.1**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)
@@ -82,4 +82,4 @@ Markdown 是正文来源；关联线、总括子树与节点标识保存在文�
 
 参见 [构建说明](BUILD.md)。源码、安装包均不包含使用者的笔记、批注、草稿或本地备份。
 
-原项目作者为 **peyote**，原项目采用 **GPL-3.0-only**，本增强版沿用相同许可。原作者署名、[LICENSE](LICENSE) 和 [上游说明](README.upstream.md) 保留。增强版维护仓库为 [w3330442790-sys/taube-markdown-tool](https://github.com/w3330442790-sys/taube-markdown-tool)。
+原项目作者为 **peyote**，原项目采用 **GPL-3.0-only**，本增强版沿用相同许可并保留原作者署名、[LICENSE](LICENSE) 与 [上游说明](README.upstream.md)。本增强版由 **taube** 维护，仓库为 [w3330442790-sys/taube-markdown-tool](https://github.com/w3330442790-sys/taube-markdown-tool)。

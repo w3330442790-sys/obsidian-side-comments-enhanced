@@ -1,10 +1,10 @@
 {
   "id": "taube-markdown-tool",
   "name": "Taube Markdown Tool",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "minAppVersion": "1.8.7",
   "description": "Markdown annotations and synchronized outline/mind-map editing with labeled relationships and expandable summaries.",
-  "author": "peyote",
+  "author": "taube",
   "isDesktopOnly": false,
   "authorUrl": "https://github.com/w3330442790-sys/taube-markdown-tool"
 }

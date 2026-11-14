@@ -1,3 +1,8 @@
+# 1.4.1 · 2026-11-14 · 作者改为 taube
+
+- 插件作者信息改为 **taube**，`package.json` 作者同步更新；原作者 peyote 的署名、LICENSE 与上游说明继续保留。
+- 版本号与发布资产更新，功能与数据格式不变。
+
 # 1.4.0 · 2026-11-14 · 统一为 Taube Markdown Tool
 
 - 插件改名为 **Taube Markdown Tool**，插件 ID 与 GitHub 仓库统一为 `taube-markdown-tool`。
