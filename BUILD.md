@@ -1,6 +1,6 @@
 # 构建与验证
 
-Taube Markdown Tool 2.1.0，基于 Side-Comments-origin 的兼容增强版（GPL-3.0-only），并内置原“融合 Mindmap（personal-mindmap）”完整画布和原“表格工具（excel-tool）”。插件 ID 为 `taube-markdown-tool`，从旧 ID 的设置目录迁移；不并行启用副本。完整画布复用 MIT 许可的 Weilanx Mind Map 0.2.0 与 gogoga Mind Map 0.34.0 源码，表格工具复用 MIT 许可的 TableTune 2.0.1 个人增强版；许可与上游提交见 `vendor/personal-mindmap/`、`vendor/excel-tool/` 和 `THIRD_PARTY_NOTICES.md`。
+Taube Markdown Tool 2.2.0，基于 Side-Comments-origin 的兼容增强版（GPL-3.0-only），并内置原“融合 Mindmap（personal-mindmap）”完整画布和原“表格工具（excel-tool）”。插件 ID 为 `taube-markdown-tool`，从旧 ID 的设置目录迁移；不并行启用副本。完整画布复用 MIT 许可的 Weilanx Mind Map 0.2.0 与 gogoga Mind Map 0.34.0 源码，表格工具复用 MIT 许可的 TableTune 2.0.1 个人增强版；许可与上游提交见 `vendor/personal-mindmap/`、`vendor/excel-tool/` 和 `THIRD_PARTY_NOTICES.md`。
 
 ```powershell
 npm ci --ignore-scripts
@@ -12,7 +12,7 @@ npm run test:ui
 
 UI 测试使用锁定的 Playwright 开发依赖。默认浏览器为本机 Microsoft Edge，可通过 `BROWSER_PATH` 指定 Chromium 可执行文件。测试仅创建合成笔记与内存 Vault，不连接真实 Obsidian 或笔记库。
 
-## 2.1.0 构建结构
+## 2.2.0 构建结构
 
 - `src/main.ts`：批注、拖动、工具栏与插件入口；`SideNote` 继承内置画布基类，一个实例注册三部分能力。
 - `vendor/personal-mindmap/`：原融合 Mindmap 的 Obsidian 入口层、`src/core`、`src/fusion`、`vendor/gogoga/src` 与 `webview/src`；不含 VS Code 扩展与 CLI。
@@ -24,7 +24,7 @@ UI 测试使用锁定的 Playwright 开发依赖。默认浏览器为本机 Micr
 
 ## 验证范围
 
-`npm test` 覆盖批注筛选、草稿、标记、Markdown 保真、拖动几何、工具栏命令、合并插件的视图／命令／设置分文件、表格工具核心与持久化，以及旧 `personal-mindmap`／`excel-tool` 迁移。共 209 项单元测试。`npm run test:ui` 顺序执行批注侧栏、选区工具栏、拖动、Markdown 工具栏、完整画布和表格工具浏览器检查，共 93 项检查。测试不读取真实笔记。真实 iPad／安卓硬件未在本次环境验收。
+`npm test` 覆盖批注筛选、草稿、标记、Markdown 保真、拖动几何、工具栏命令、合并插件的视图／命令／设置分文件、表格工具核心与持久化，以及旧 `personal-mindmap`／`excel-tool` 迁移。共 212 项单元测试。`npm run test:ui` 顺序执行批注侧栏、选区工具栏、拖动、Markdown 工具栏、完整画布和表格工具浏览器检查，共 96 项检查。测试不读取真实笔记。真实 iPad／安卓硬件未在本次环境验收。
 
 ## 1.1.0 历史验收
 

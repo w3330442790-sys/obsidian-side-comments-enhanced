@@ -255,6 +255,65 @@ test('every toolbar command is listed once and plans integer positions', () => {
   }
 });
 
+test('edit commands delegate undo, redo and find-replace to Obsidian', () => {
+  const editCommands = toolbar.MARKDOWN_EDIT_COMMANDS.map(entry => entry.command);
+  assert.deepEqual(editCommands, ['undo', 'redo', 'find-replace']);
+  assert.ok(toolbar.MARKDOWN_EDIT_COMMANDS.every(entry => entry.group === 'edit'));
+  assert.equal(toolbar.MARKDOWN_TOOLBAR_COMMANDS.length, 17);
+
+  const calls = [];
+  const notices = [];
+  const editor = {
+    focus: () => calls.push('focus'),
+    undo: () => calls.push('undo'),
+    redo: () => calls.push('redo'),
+  };
+  const view = {
+    editor,
+    getMode: () => 'source',
+    showSearch: replace => calls.push(`search:${replace}`),
+  };
+  toolbar.runMarkdownToolbarCommand(view, 'undo', message => notices.push(message));
+  assert.deepEqual(calls, ['focus', 'undo']);
+  calls.length = 0;
+  toolbar.runMarkdownToolbarCommand(view, 'redo', message => notices.push(message));
+  assert.deepEqual(calls, ['focus', 'redo']);
+  calls.length = 0;
+  toolbar.runMarkdownToolbarCommand(view, 'find-replace', message => notices.push(message));
+  assert.deepEqual(calls, ['search:true']);
+  assert.deepEqual(notices, []);
+});
+
+test('reading mode blocks every edit action, including find-replace', () => {
+  const calls = [];
+  const notices = [];
+  const view = {
+    editor: {
+      focus: () => calls.push('focus'),
+      undo: () => calls.push('undo'),
+      redo: () => calls.push('redo'),
+    },
+    getMode: () => 'preview',
+    showSearch: replace => calls.push(`search:${replace}`),
+  };
+  toolbar.runMarkdownToolbarCommand(view, 'undo', message => notices.push(message));
+  toolbar.runMarkdownToolbarCommand(view, 'redo', message => notices.push(message));
+  toolbar.runMarkdownToolbarCommand(view, 'find-replace', message => notices.push(message));
+  assert.deepEqual(calls, []);
+  assert.deepEqual(notices, [
+    '请先切换到编辑模式再使用工具栏',
+    '请先切换到编辑模式再使用工具栏',
+    '请先切换到编辑模式再使用查找替换',
+  ]);
+});
+
+test('find-replace reports a notice when the host has no search panel', () => {
+  const notices = [];
+  const view = { editor: { focus: () => {} }, getMode: () => 'source' };
+  toolbar.runMarkdownToolbarCommand(view, 'find-replace', message => notices.push(message));
+  assert.deepEqual(notices, ['当前 Obsidian 版本不支持查找替换，请使用 Obsidian 的查找命令']);
+});
+
 test('applyMarkdownCommand sends a single CodeMirror transaction when a cm view exists', () => {
   const dispatched = [];
   const cm = {

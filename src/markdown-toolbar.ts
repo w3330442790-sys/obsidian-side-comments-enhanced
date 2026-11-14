@@ -1,20 +1,37 @@
 import { Editor, MarkdownView, Notice, setIcon } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 
-export type MarkdownCommand =
+export type MarkdownFormatCommand =
     | 'bold' | 'italic' | 'strikethrough' | 'highlight' | 'inline-code'
     | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
     | 'quote' | 'bullet-list' | 'number-list' | 'task-list' | 'code-block'
     | 'link' | 'table' | 'divider' | 'clear-marks';
 
+/** Edit actions delegate to Obsidian instead of rewriting Markdown themselves. */
+export type MarkdownEditCommand = 'undo' | 'redo' | 'find-replace';
+
+export type MarkdownCommand = MarkdownFormatCommand | MarkdownEditCommand;
+
 export interface TextChange { from: number; to: number; insert: string }
 export interface CommandPlan { changes: TextChange[]; anchor: number; head: number }
 
-interface ToolbarEntry { command: MarkdownCommand; label: string; group: 'text' | 'block' | 'insert' }
+type ToolbarGroup = 'edit' | 'text' | 'block' | 'insert';
+interface ToolbarEntry<C extends MarkdownCommand = MarkdownCommand> {
+    command: C;
+    label: string;
+    group: ToolbarGroup;
+}
 interface LineInfo { start: number; end: number; text: string }
 
+/** Editing shortcuts shown before the formatting groups. */
+export const MARKDOWN_EDIT_COMMANDS: ToolbarEntry<MarkdownEditCommand>[] = [
+    { command: 'undo', label: '撤销', group: 'edit' },
+    { command: 'redo', label: '重做', group: 'edit' },
+    { command: 'find-replace', label: '查找替换', group: 'edit' },
+];
+
 /** Toolbar metadata; the fixed toolbar renders these entries in order. */
-export const MARKDOWN_TOOLBAR_COMMANDS: ToolbarEntry[] = [
+export const MARKDOWN_TOOLBAR_COMMANDS: ToolbarEntry<MarkdownFormatCommand>[] = [
     { command: 'bold', label: '加粗', group: 'text' },
     { command: 'italic', label: '斜体', group: 'text' },
     { command: 'strikethrough', label: '删除线', group: 'text' },
@@ -35,6 +52,9 @@ export const MARKDOWN_TOOLBAR_COMMANDS: ToolbarEntry[] = [
 ];
 
 const TOOLBAR_ICONS: Partial<Record<MarkdownCommand, string>> = {
+    undo: 'undo-2',
+    redo: 'redo-2',
+    'find-replace': 'search',
     bold: 'bold',
     italic: 'italic',
     strikethrough: 'strikethrough',
@@ -446,7 +466,7 @@ function planClearMarks(text: string, from: number, to: number): CommandPlan {
 // --- Public planning API --------------------------------------------------
 
 /** Pure planner: returns changes in original coordinates plus the resulting selection. */
-export function planMarkdownCommand(text: string, from: number, to: number, command: MarkdownCommand): CommandPlan {
+export function planMarkdownCommand(text: string, from: number, to: number, command: MarkdownFormatCommand): CommandPlan {
     const range = normalizeRange(text, from, to);
     const start = range.from;
     const end = range.to;
@@ -476,7 +496,7 @@ export function planMarkdownCommand(text: string, from: number, to: number, comm
 }
 
 /** Apply a command in one undo step, preferring the underlying CodeMirror view. */
-export function applyMarkdownCommand(editor: Editor, command: MarkdownCommand): void {
+export function applyMarkdownCommand(editor: Editor, command: MarkdownFormatCommand): void {
     const cm = (editor as Editor & { cm?: EditorView }).cm;
     if (cm) {
         const text = cm.state.doc.toString();
@@ -501,6 +521,42 @@ export function applyMarkdownCommand(editor: Editor, command: MarkdownCommand): 
     editor.setSelection(editor.offsetToPos(plan.anchor), editor.offsetToPos(plan.head));
 }
 
+/**
+ * Run one toolbar action. Edit actions deliberately delegate to Obsidian:
+ * undo/redo use the editor's native history, and find/replace opens the native
+ * panel so regex, case matching and Replace All behave exactly like the app.
+ */
+export function runMarkdownToolbarCommand(
+    view: MarkdownView,
+    command: MarkdownCommand,
+    notify: (message: string) => void = message => new Notice(message),
+): void {
+    if (view.getMode() === 'preview') {
+        notify(command === 'find-replace'
+            ? '请先切换到编辑模式再使用查找替换'
+            : '请先切换到编辑模式再使用工具栏');
+        return;
+    }
+    if (command === 'find-replace') {
+        const searchView = view as MarkdownView & { showSearch?: (replace?: boolean) => void };
+        if (typeof searchView.showSearch === 'function') {
+            searchView.showSearch(true);
+        } else {
+            notify('当前 Obsidian 版本不支持查找替换，请使用 Obsidian 的查找命令');
+        }
+        return;
+    }
+    const editor = view.editor;
+    editor.focus();
+    if (command === 'undo') {
+        editor.undo();
+    } else if (command === 'redo') {
+        editor.redo();
+    } else {
+        applyMarkdownCommand(editor, command);
+    }
+}
+
 // --- Fixed toolbar --------------------------------------------------------
 
 /** Mount the fixed Markdown toolbar as the first child of the view content area. */
@@ -516,7 +572,7 @@ export function mountMarkdownToolbar(
     const notify = options.onNotice ?? ((message: string) => { new Notice(message); });
 
     let currentGroup: ToolbarEntry['group'] | null = null;
-    for (const entry of MARKDOWN_TOOLBAR_COMMANDS) {
+    for (const entry of [...MARKDOWN_EDIT_COMMANDS, ...MARKDOWN_TOOLBAR_COMMANDS]) {
         if (entry.group !== currentGroup) {
             if (currentGroup !== null) {
                 const separator = createSpan('mt-md-toolbar-sep');
@@ -551,12 +607,7 @@ export function mountMarkdownToolbar(
         if (!(button instanceof HTMLButtonElement)) return;
         const command = button.getAttribute('data-command') as MarkdownCommand | null;
         if (!command) return;
-        if (view.getMode() === 'preview') {
-            notify('请先切换到编辑模式再使用工具栏');
-            return;
-        }
-        view.editor.focus();
-        applyMarkdownCommand(view.editor, command);
+        runMarkdownToolbarCommand(view, command, notify);
     };
     toolbar.addEventListener('mousedown', onMouseDown);
     toolbar.addEventListener('click', onClick);

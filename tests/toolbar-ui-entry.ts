@@ -9,6 +9,7 @@ declare global {
         setMode(mode: string): void;
         selection(): { from: number; to: number } | null;
         notices: string[];
+        calls: string[];
     }
 }
 
@@ -17,9 +18,11 @@ let mode = 'source';
 let dispose: (() => void) | null = null;
 
 window.notices = [];
+window.calls = [];
 window.setup = () => {
     dispose?.();
     window.notices = [];
+    window.calls = [];
     mode = 'source';
     view?.destroy();
     const host = document.getElementById('host');
@@ -34,8 +37,14 @@ window.setup = () => {
     view = new EditorView({ doc: 'hello world', parent: content });
     const fakeView = {
         containerEl,
-        editor: { cm: view, focus: () => view?.focus() },
+        editor: {
+            cm: view,
+            focus: () => view?.focus(),
+            undo: () => window.calls.push('undo'),
+            redo: () => window.calls.push('redo'),
+        },
         getMode: () => mode,
+        showSearch: (replace: boolean) => window.calls.push(`search:${replace}`),
     };
     dispose = mountMarkdownToolbar(fakeView as never, { onNotice: message => window.notices.push(message) });
 };

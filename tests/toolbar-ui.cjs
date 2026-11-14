@@ -37,14 +37,42 @@ const server = http.createServer((req, res) => {
       await page.evaluate(() => window.setup());
       const toolbar = page.locator('.mt-md-toolbar');
       assert.equal(await toolbar.count(), 1);
-      assert.equal(await page.locator('.mt-md-toolbar-btn').count(), 17);
-      assert.equal(await page.locator('.mt-md-toolbar-sep').count(), 2);
+      assert.equal(await page.locator('.mt-md-toolbar-btn').count(), 20);
+      assert.equal(await page.locator('.mt-md-toolbar-sep').count(), 3);
       const first = await page.evaluate(() => document.querySelector('.view-content')?.firstElementChild?.className);
       assert.equal(first, 'mt-md-toolbar');
+      const commands = await page.evaluate(() => [...document.querySelectorAll('.mt-md-toolbar-btn')].map(button => button.getAttribute('data-command')));
+      assert.deepEqual(commands.slice(0, 3), ['undo', 'redo', 'find-replace']);
+    });
+
+    await check('undo and redo buttons use the native editor history', async () => {
+      await page.evaluate(() => window.setup());
+      await page.getByRole('button', { name: '撤销' }).click();
+      await page.getByRole('button', { name: '重做' }).click();
+      assert.deepEqual(await page.evaluate(() => window.calls), ['undo', 'redo']);
+    });
+
+    await check('find-replace opens the native panel in replace mode', async () => {
+      await page.evaluate(() => window.setup());
+      await page.getByRole('button', { name: '查找替换' }).click();
+      assert.deepEqual(await page.evaluate(() => window.calls), ['search:true']);
+    });
+
+    await check('reading mode blocks undo, redo and find-replace', async () => {
+      await page.evaluate(() => { window.setup(); window.setMode('preview'); });
+      await page.getByRole('button', { name: '撤销' }).click();
+      await page.getByRole('button', { name: '重做' }).click();
+      await page.getByRole('button', { name: '查找替换' }).click();
+      assert.deepEqual(await page.evaluate(() => window.calls), []);
+      assert.deepEqual(await page.evaluate(() => window.notices), [
+        '请先切换到编辑模式再使用工具栏',
+        '请先切换到编辑模式再使用工具栏',
+        '请先切换到编辑模式再使用查找替换',
+      ]);
     });
 
     await check('bold button wraps the selection and keeps it selected', async () => {
-      await page.evaluate(() => window.select(0, 5));
+      await page.evaluate(() => { window.setup(); window.select(0, 5); });
       await page.getByRole('button', { name: '加粗' }).click();
       assert.equal(await page.evaluate(() => window.doc()), '**hello** world');
       const selection = await page.evaluate(() => window.getSelection()?.toString());

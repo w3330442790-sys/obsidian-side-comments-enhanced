@@ -3423,6 +3423,29 @@ export default class SideNote extends MindmapPluginBase {
                 editorCallback: editor => applyMarkdownCommand(editor, command),
             });
         }
+        this.addCommand({
+            id: 'markdown-undo',
+            name: 'Markdown 工具栏：撤销',
+            icon: 'undo-2',
+            editorCallback: editor => editor.undo(),
+        });
+        this.addCommand({
+            id: 'markdown-redo',
+            name: 'Markdown 工具栏：重做',
+            icon: 'redo-2',
+            editorCallback: editor => editor.redo(),
+        });
+        this.addCommand({
+            id: 'markdown-find-replace',
+            name: 'Markdown 工具栏：查找替换',
+            icon: 'search',
+            checkCallback: checking => {
+                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!view || view.getMode() !== 'source') return false;
+                if (!checking) view.showSearch(true);
+                return true;
+            },
+        });
         
         this.addCommand({
             id: "add-comment-to-selection", name: "为选中内容添加高亮", icon: "message-square",
