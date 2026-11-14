@@ -1,6 +1,8 @@
 import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateResult, Plugin, Setting, PluginSettingTab, MarkdownRenderer, setIcon, Component, normalizePath, Platform, Editor } from "obsidian";
 import { Comment, CommentManager } from "./commentManager";
 import { registerMarkdownTool } from './mindmap/view';
+import { personalMindmapProvidesView } from './mindmap/compat';
+import { registerLegacyMindmapBridge } from './mindmap/legacy-bridge';
 import { Modal } from 'obsidian';
 import { filterComments, navigation, rebindComment, restoreComment, draftKey, DraftStore, Draft, Preferences, CommentFilter } from './enhancements';
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
@@ -3364,10 +3366,17 @@ export default class SideNote extends Plugin {
         
         this.addSettingTab(new SideNoteSettingTab(this.app, this));
         this.registerView("sidenote-view", (leaf) => new SideNoteView(leaf, this));
-        registerMarkdownTool(this, {
-            comments: path => this.commentManager.getCommentsForFile(path),
-            openComment: timestamp => this.activateViewAndHighlightComment(timestamp),
-        });
+        // The personal-mindmap plugin now owns the mind-map view. Do not add a
+        // second top-right switch or keep the old canvas: register a tiny
+        // forwarding view for tabs that still point at the old view type.
+        if (personalMindmapProvidesView(this.app)) {
+            registerLegacyMindmapBridge(this, this.app);
+        } else {
+            registerMarkdownTool(this, {
+                comments: path => this.commentManager.getCommentsForFile(path),
+                openComment: timestamp => this.activateViewAndHighlightComment(timestamp),
+            });
+        }
 
         this.registerObsidianProtocolHandler("sidenote", async (params) => {
             const timestamp = parseInt(params.timestamp);

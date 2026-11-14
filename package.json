@@ -1,14 +1,14 @@
 {
   "name": "taube-markdown-tool",
-  "version": "1.6.0",
-  "description": "Markdown annotations and synchronized outline/mind-map editing.",
+  "version": "1.6.1",
+  "description": "Markdown annotations, block drag and a text toolbar; defers mind maps to personal-mindmap.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "lint": "eslint src",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/verify-bundle.mjs",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "test": "node --test tests/enhancements.test.cjs tests/mindmap.test.cjs tests/selection-tools.test.cjs tests/annotation-anchor.test.cjs tests/legacy-migration.test.cjs tests/block-drag.test.cjs tests/markdown-toolbar.test.cjs tests/history-session.test.cjs",
+    "test": "node --test tests/enhancements.test.cjs tests/mindmap.test.cjs tests/personal-mindmap-compat.test.cjs tests/selection-tools.test.cjs tests/annotation-anchor.test.cjs tests/legacy-migration.test.cjs tests/block-drag.test.cjs tests/markdown-toolbar.test.cjs tests/history-session.test.cjs",
     "test:ui": "node tests/ui-test.cjs && node tests/selection-ui-test.cjs && node tests/mindmap-ui.cjs && node tests/drag-ui.cjs && node tests/toolbar-ui.cjs"
   },
   "keywords": [],

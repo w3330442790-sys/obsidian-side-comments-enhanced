@@ -1,10 +1,10 @@
 {
-  "id": "taube-markdown-tool",
-  "name": "Taube Markdown Tool",
-  "version": "1.6.0",
-  "minAppVersion": "1.8.7",
-  "description": "Markdown annotations and synchronized outline/mind-map editing with labeled relationships and expandable summaries.",
-  "author": "taube",
-  "isDesktopOnly": false,
-  "authorUrl": "https://github.com/w3330442790-sys/taube-markdown-tool"
+	"id": "taube-markdown-tool",
+	"name": "Taube Markdown Tool",
+	"version": "1.6.1",
+	"minAppVersion": "1.8.7",
+	"description": "Markdown annotations, block drag and a text toolbar. Defers mind-map editing to the personal-mindmap plugin when it is enabled.",
+	"author": "taube",
+	"isDesktopOnly": false,
+	"authorUrl": "https://github.com/w3330442790-sys/taube-markdown-tool"
 }
