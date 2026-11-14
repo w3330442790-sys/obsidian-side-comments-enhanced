@@ -37,12 +37,12 @@ const server = http.createServer((req, res) => {
       await page.evaluate(() => window.setup());
       const toolbar = page.locator('.mt-md-toolbar');
       assert.equal(await toolbar.count(), 1);
-      assert.equal(await page.locator('.mt-md-toolbar-btn').count(), 20);
+      assert.equal(await page.locator('.mt-md-toolbar-btn').count(), 21);
       assert.equal(await page.locator('.mt-md-toolbar-sep').count(), 3);
       const first = await page.evaluate(() => document.querySelector('.view-content')?.firstElementChild?.className);
       assert.equal(first, 'mt-md-toolbar');
       const commands = await page.evaluate(() => [...document.querySelectorAll('.mt-md-toolbar-btn')].map(button => button.getAttribute('data-command')));
-      assert.deepEqual(commands.slice(0, 3), ['undo', 'redo', 'find-replace']);
+      assert.deepEqual(commands.slice(0, 4), ['undo', 'redo', 'find-replace', 'cloze-toggle']);
     });
 
     await check('undo and redo buttons use the native editor history', async () => {
@@ -58,7 +58,33 @@ const server = http.createServer((req, res) => {
       assert.deepEqual(await page.evaluate(() => window.calls), ['search:true']);
     });
 
-    await check('reading mode blocks undo, redo and find-replace', async () => {
+    await check('cloze button toggles the Markdown mask and its label', async () => {
+      await page.evaluate(() => {
+        window.setup();
+        const sample = document.createElement('div');
+        sample.className = 'markdown-rendered';
+        sample.innerHTML = '<mark>answer</mark>';
+        document.querySelector('.view-content')?.appendChild(sample);
+      });
+      const cloze = page.locator('[data-command="cloze-toggle"]');
+      assert.equal(await cloze.getAttribute('aria-label'), '隐藏挖孔内容');
+      await cloze.click();
+      assert.equal(await page.evaluate(() => window.clozeHidden()), true);
+      assert.equal(await cloze.getAttribute('aria-label'), '显示挖孔内容');
+      assert.equal(
+        await page.evaluate(() => getComputedStyle(document.querySelector('.markdown-rendered mark')).color),
+        'rgba(0, 0, 0, 0)',
+      );
+      await cloze.click();
+      assert.equal(await page.evaluate(() => window.clozeHidden()), false);
+      assert.equal(await cloze.getAttribute('aria-label'), '隐藏挖孔内容');
+      assert.notEqual(
+        await page.evaluate(() => getComputedStyle(document.querySelector('.markdown-rendered mark')).color),
+        'rgba(0, 0, 0, 0)',
+      );
+    });
+
+    await check('reading mode blocks edit actions but keeps cloze available', async () => {
       await page.evaluate(() => { window.setup(); window.setMode('preview'); });
       await page.getByRole('button', { name: '撤销' }).click();
       await page.getByRole('button', { name: '重做' }).click();
@@ -69,6 +95,9 @@ const server = http.createServer((req, res) => {
         '请先切换到编辑模式再使用工具栏',
         '请先切换到编辑模式再使用查找替换',
       ]);
+      await page.locator('[data-command="cloze-toggle"]').click();
+      assert.equal(await page.evaluate(() => window.clozeHidden()), true);
+      assert.equal(await page.evaluate(() => window.notices.length), 3);
     });
 
     await check('bold button wraps the selection and keeps it selected', async () => {

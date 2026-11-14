@@ -1822,6 +1822,7 @@ body.is-mobile .sidenote-selection-toolbar {
     cursor: pointer;
 }
 .mt-md-toolbar-btn:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.mt-md-toolbar-btn.is-active { color: var(--interactive-accent); background: var(--background-modifier-hover); }
 .mt-md-toolbar-btn:active { background: var(--background-modifier-active-hover); }
 .mt-md-toolbar-btn:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 1px; }
 .mt-md-toolbar-btn .svg-icon { width: 16px; height: 16px; }
@@ -1879,6 +1880,21 @@ body.mt-drag-cursor * { cursor: grabbing !important; }
     color: var(--interactive-accent);
     font-size: 12px;
     line-height: 1;
+}
+
+/* --- Cloze (挖孔) mode: ==highlight== text stays in the note but is masked --- */
+.mt-cloze-hidden :is(.markdown-rendered mark, .markdown-preview-view mark),
+.mt-cloze-hidden .cm-editor :is(.mt-cloze, .cm-highlight) {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    background: var(--background-modifier-hover);
+    box-shadow: inset 0 -1.5px 0 var(--interactive-accent);
+    border-radius: 2px;
+    cursor: pointer;
+}
+.mt-cloze-hidden :is(.markdown-rendered mark, .markdown-preview-view mark) * {
+    visibility: hidden;
 }
 
 @media (pointer: coarse) {

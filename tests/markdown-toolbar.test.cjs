@@ -32,6 +32,31 @@ function load() {
 }
 
 const toolbar = load();
+
+function loadCloze() {
+  const entry = path.join(__dirname, '../src/cloze.ts');
+  const result = esbuild.buildSync({
+    entryPoints: [entry],
+    bundle: true,
+    write: false,
+    platform: 'node',
+    format: 'cjs',
+    external: ['obsidian', '@codemirror/view'],
+  });
+  const mod = { exports: {} };
+  const stubRequire = id => {
+    if (id === 'obsidian') return {};
+    if (id === '@codemirror/view') return {
+      Decoration: { mark: () => ({ range: () => ({}) }), set: () => ({}) },
+      ViewPlugin: { fromClass: () => ({}) },
+    };
+    return require(id);
+  };
+  new Function('module', 'exports', 'require', result.outputFiles[0].text)(mod, mod.exports, stubRequire);
+  return mod.exports;
+}
+
+const cloze = loadCloze();
 const plan = (text, from, to, command) => toolbar.planMarkdownCommand(text, from, to, command);
 
 /** Apply a plan with the same rules CodeMirror uses and validate its invariants. */
@@ -255,14 +280,38 @@ test('every toolbar command is listed once and plans integer positions', () => {
   }
 });
 
+test('cloze ranges cover ==highlight== content and ignore code or escaped markers', () => {
+  const text = 'one ==hidden one== two\n```\n==code==\n```\n`==inline==` \\==escaped==\n===heading=== ==two==';
+  const ranges = cloze.findClozeRanges(text);
+  assert.deepEqual(ranges.map(range => text.slice(range.from, range.to)), ['hidden one', 'two']);
+});
+
+test('cloze toggle stores its state on the Markdown view container', () => {
+  const classes = new Set();
+  const view = { containerEl: { classList: {
+    contains: name => classes.has(name),
+    toggle: (name, force) => {
+      const next = force === undefined ? !classes.has(name) : force;
+      if (next) classes.add(name); else classes.delete(name);
+      return next;
+    },
+  } } };
+  assert.equal(cloze.isClozeHidden(view), false);
+  assert.equal(cloze.toggleCloze(view), true);
+  assert.equal(cloze.isClozeHidden(view), true);
+  assert.equal(cloze.toggleCloze(view), false);
+  assert.equal(cloze.isClozeHidden(view), false);
+});
+
 test('edit commands delegate undo, redo and find-replace to Obsidian', () => {
   const editCommands = toolbar.MARKDOWN_EDIT_COMMANDS.map(entry => entry.command);
-  assert.deepEqual(editCommands, ['undo', 'redo', 'find-replace']);
+  assert.deepEqual(editCommands, ['undo', 'redo', 'find-replace', 'cloze-toggle']);
   assert.ok(toolbar.MARKDOWN_EDIT_COMMANDS.every(entry => entry.group === 'edit'));
   assert.equal(toolbar.MARKDOWN_TOOLBAR_COMMANDS.length, 17);
 
   const calls = [];
   const notices = [];
+  const classes = new Set();
   const editor = {
     focus: () => calls.push('focus'),
     undo: () => calls.push('undo'),
@@ -270,6 +319,14 @@ test('edit commands delegate undo, redo and find-replace to Obsidian', () => {
   };
   const view = {
     editor,
+    containerEl: { classList: {
+      contains: name => classes.has(name),
+      toggle: (name, force) => {
+        const next = force === undefined ? !classes.has(name) : force;
+        if (next) classes.add(name); else classes.delete(name);
+        return next;
+      },
+    } },
     getMode: () => 'source',
     showSearch: replace => calls.push(`search:${replace}`),
   };
@@ -281,18 +338,31 @@ test('edit commands delegate undo, redo and find-replace to Obsidian', () => {
   calls.length = 0;
   toolbar.runMarkdownToolbarCommand(view, 'find-replace', message => notices.push(message));
   assert.deepEqual(calls, ['search:true']);
+  toolbar.runMarkdownToolbarCommand(view, 'cloze-toggle', message => notices.push(message));
+  assert.equal(classes.has('mt-cloze-hidden'), true);
+  toolbar.runMarkdownToolbarCommand(view, 'cloze-toggle', message => notices.push(message));
+  assert.equal(classes.has('mt-cloze-hidden'), false);
   assert.deepEqual(notices, []);
 });
 
-test('reading mode blocks every edit action, including find-replace', () => {
+test('reading mode blocks edit actions but keeps cloze available', () => {
   const calls = [];
   const notices = [];
+  const classes = new Set();
   const view = {
     editor: {
       focus: () => calls.push('focus'),
       undo: () => calls.push('undo'),
       redo: () => calls.push('redo'),
     },
+    containerEl: { classList: {
+      contains: name => classes.has(name),
+      toggle: (name, force) => {
+        const next = force === undefined ? !classes.has(name) : force;
+        if (next) classes.add(name); else classes.delete(name);
+        return next;
+      },
+    } },
     getMode: () => 'preview',
     showSearch: replace => calls.push(`search:${replace}`),
   };
@@ -305,6 +375,9 @@ test('reading mode blocks every edit action, including find-replace', () => {
     '请先切换到编辑模式再使用工具栏',
     '请先切换到编辑模式再使用查找替换',
   ]);
+  toolbar.runMarkdownToolbarCommand(view, 'cloze-toggle', message => notices.push(message));
+  assert.equal(classes.has('mt-cloze-hidden'), true);
+  assert.equal(notices.length, 3);
 });
 
 test('find-replace reports a notice when the host has no search panel', () => {

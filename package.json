@@ -1,6 +1,6 @@
 {
   "name": "taube-markdown-tool",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Markdown annotations, block editing, a text toolbar, a fused mind-map canvas and Android-friendly table tools in one plugin.",
   "main": "main.js",
   "scripts": {
@@ -8,8 +8,8 @@
     "lint": "eslint src",
     "build": "tsc -noEmit -skipLibCheck && node scripts/build-styles.mjs && node esbuild.config.mjs production && node scripts/verify-bundle.mjs",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "test": "node --test tests/enhancements.test.cjs tests/selection-tools.test.cjs tests/annotation-anchor.test.cjs tests/legacy-migration.test.cjs tests/block-drag.test.cjs tests/markdown-toolbar.test.cjs tests/excel-tool/core.test.cjs tests/excel-tool/plugin.test.cjs && node --test --import tsx tests/mindmap/clipboard.test.ts tests/mindmap/core.test.ts tests/mindmap/emoji-markers.test.ts tests/mindmap/fusion-format.test.ts tests/mindmap/fusion-ops.test.ts tests/mindmap/fusion-theme.test.ts tests/mindmap/inline-format.test.ts tests/mindmap/integration.test.ts tests/mindmap/lifetime.test.ts tests/mindmap/note-modal.test.ts tests/mindmap/obsidian-host.test.ts tests/mindmap/obsidian-plugin.test.ts tests/mindmap/obsidian-xmind.test.ts tests/mindmap/persistence.test.ts tests/mindmap/rich-export.test.ts tests/mindmap/rich.test.ts tests/mindmap/shape.test.ts tests/mindmap/summary-branch.test.ts",
-    "test:ui": "node tests/ui-test.cjs && node tests/selection-ui-test.cjs && node tests/drag-ui.cjs && node tests/toolbar-ui.cjs && node tests/mindmap-ui.cjs && node tests/excel-tool/ui-test.cjs"
+    "test": "node --test tests/enhancements.test.cjs tests/selection-tools.test.cjs tests/annotation-anchor.test.cjs tests/legacy-migration.test.cjs tests/block-drag.test.cjs tests/markdown-toolbar.test.cjs tests/excel-tool/core.test.cjs tests/excel-tool/plugin.test.cjs && node --test --import tsx tests/mindmap/clipboard.test.ts tests/mindmap/core.test.ts tests/mindmap/emoji-catalog.test.ts tests/mindmap/emoji-markers.test.ts tests/mindmap/fusion-format.test.ts tests/mindmap/fusion-ops.test.ts tests/mindmap/fusion-theme.test.ts tests/mindmap/inline-format.test.ts tests/mindmap/integration.test.ts tests/mindmap/lifetime.test.ts tests/mindmap/note-modal.test.ts tests/mindmap/obsidian-host.test.ts tests/mindmap/obsidian-plugin.test.ts tests/mindmap/obsidian-xmind.test.ts tests/mindmap/persistence.test.ts tests/mindmap/rich-export.test.ts tests/mindmap/rich.test.ts tests/mindmap/shape.test.ts tests/mindmap/summary-branch.test.ts",
+    "test:ui": "node tests/ui-test.cjs && node tests/selection-ui-test.cjs && node tests/drag-ui.cjs && node tests/toolbar-ui.cjs && node tests/gogoga-ui.cjs && node tests/mindmap-ui.cjs && node tests/excel-tool/ui-test.cjs"
   },
   "keywords": [
     "obsidian",

@@ -1,7 +1,7 @@
 {
 	"id": "taube-markdown-tool",
 	"name": "Taube Markdown Tool",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"minAppVersion": "1.8.7",
 	"description": "Markdown annotations, block editing, a text toolbar, a full mind-map canvas and Android-friendly table tools.",
 	"author": "taube",

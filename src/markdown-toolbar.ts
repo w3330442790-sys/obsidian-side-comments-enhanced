@@ -1,5 +1,6 @@
 import { Editor, MarkdownView, Notice, setIcon } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
+import { isClozeHidden, toggleCloze } from './cloze';
 
 export type MarkdownFormatCommand =
     | 'bold' | 'italic' | 'strikethrough' | 'highlight' | 'inline-code'
@@ -8,7 +9,7 @@ export type MarkdownFormatCommand =
     | 'link' | 'table' | 'divider' | 'clear-marks';
 
 /** Edit actions delegate to Obsidian instead of rewriting Markdown themselves. */
-export type MarkdownEditCommand = 'undo' | 'redo' | 'find-replace';
+export type MarkdownEditCommand = 'undo' | 'redo' | 'find-replace' | 'cloze-toggle';
 
 export type MarkdownCommand = MarkdownFormatCommand | MarkdownEditCommand;
 
@@ -28,6 +29,7 @@ export const MARKDOWN_EDIT_COMMANDS: ToolbarEntry<MarkdownEditCommand>[] = [
     { command: 'undo', label: '撤销', group: 'edit' },
     { command: 'redo', label: '重做', group: 'edit' },
     { command: 'find-replace', label: '查找替换', group: 'edit' },
+    { command: 'cloze-toggle', label: '挖孔', group: 'edit' },
 ];
 
 /** Toolbar metadata; the fixed toolbar renders these entries in order. */
@@ -55,6 +57,7 @@ const TOOLBAR_ICONS: Partial<Record<MarkdownCommand, string>> = {
     undo: 'undo-2',
     redo: 'redo-2',
     'find-replace': 'search',
+    'cloze-toggle': 'eye-off',
     bold: 'bold',
     italic: 'italic',
     strikethrough: 'strikethrough',
@@ -531,6 +534,10 @@ export function runMarkdownToolbarCommand(
     command: MarkdownCommand,
     notify: (message: string) => void = message => new Notice(message),
 ): void {
+    if (command === 'cloze-toggle') {
+        toggleCloze(view);
+        return;
+    }
     if (view.getMode() === 'preview') {
         notify(command === 'find-replace'
             ? '请先切换到编辑模式再使用查找替换'
@@ -558,6 +565,22 @@ export function runMarkdownToolbarCommand(
 }
 
 // --- Fixed toolbar --------------------------------------------------------
+
+/** Reflect the current cloze state on the eye button. */
+function syncClozeButton(button: HTMLButtonElement, view: MarkdownView): void {
+    const hidden = isClozeHidden(view);
+    const label = hidden ? '显示挖孔内容' : '隐藏挖孔内容';
+    button.classList.toggle('is-active', hidden);
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    setIcon(button, hidden ? 'eye' : 'eye-off');
+}
+
+/** Keep toolbar buttons in sync when the command palette toggles cloze. */
+export function refreshClozeToolbar(view: MarkdownView): void {
+    view.containerEl.querySelectorAll<HTMLButtonElement>('.mt-md-toolbar-btn[data-command="cloze-toggle"]')
+        .forEach(button => syncClozeButton(button, view));
+}
 
 /** Mount the fixed Markdown toolbar as the first child of the view content area. */
 export function mountMarkdownToolbar(
@@ -594,6 +617,7 @@ export function mountMarkdownToolbar(
             if (icon) setIcon(button, icon);
         }
         toolbar.appendChild(button);
+        if (entry.command === 'cloze-toggle') syncClozeButton(button, view);
     }
 
     const onMouseDown = (event: MouseEvent): void => {
@@ -608,6 +632,7 @@ export function mountMarkdownToolbar(
         const command = button.getAttribute('data-command') as MarkdownCommand | null;
         if (!command) return;
         runMarkdownToolbarCommand(view, command, notify);
+        if (command === 'cloze-toggle') syncClozeButton(button, view);
     };
     toolbar.addEventListener('mousedown', onMouseDown);
     toolbar.addEventListener('click', onClick);

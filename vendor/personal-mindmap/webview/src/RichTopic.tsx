@@ -4,6 +4,7 @@ import { parseRich, safeImageSource, safeInlineColor, mediaKind, type RichToken 
 
 export interface RichEnvironmentValue {
   studyMode?: boolean;
+  clozeMode?: boolean;
   topicId?: string;
   revealed?: ReadonlySet<string>;
   showNotes?: boolean;
@@ -101,7 +102,7 @@ function appendTokens(el:HTMLElement, tokens:RichToken[], env:RichEnvironmentVal
       }
     } else if (token.children) appendTokens(child,token.children,env);
     else child.textContent = token.kind === "math" ? `$${token.text}$` : token.text??"";
-    if (token.kind === "highlight" && env.studyMode && !env.revealed?.has(env.topicId??"")) {
+    if (token.kind === "highlight" && (env.studyMode || env.clozeMode) && !env.revealed?.has(env.topicId??"")) {
       const hidden = document.createElement("span");
       while(child.firstChild) hidden.append(child.firstChild);
       hidden.style.visibility="hidden";child.append(hidden);
@@ -130,10 +131,10 @@ export function measureRichBox(text:string,font:string,lineHeight:number,maxWidt
 export function RichTopic({topicId,text,x,y,w,h,font,lineHeight,align,color,strike,markdown}:{topicId?:string;text:string;x:number;y:number;w:number;h:number;font:string;lineHeight:number;align:string;color:string;strike?:boolean;markdown?:boolean}) {
   const ref = useRef<HTMLDivElement>(null);
   const env = useContext(RichEnvironment);
-  const hostedMarkdown=markdown&&!!env.renderMarkdown&&!env.studyMode;
+  const hostedMarkdown=markdown&&!!env.renderMarkdown&&!env.studyMode&&!env.clozeMode;
   useLayoutEffect(()=>{
     const el=ref.current;if(!el)return;
-    if(markdown&&env.renderMarkdown&&!env.studyMode){el.replaceChildren();return env.renderMarkdown(text,el);}
+    if(markdown&&env.renderMarkdown&&!env.studyMode&&!env.clozeMode){el.replaceChildren();return env.renderMarkdown(text,el);}
     fillRichElement(el,text,{...env,topicId});
   },[text,env,topicId,markdown]);
   return <foreignObject x={x} y={y} width={w} height={h} overflow="visible"><div ref={ref} {...({xmlns:"http://www.w3.org/1999/xhtml"} as Record<string,string>)} className="wm-rich-topic" style={{...richCss(font,lineHeight,align),color,width:w,...(markdown?{height:h,overflow:"auto",whiteSpace:hostedMarkdown?"normal" as const:"pre-wrap" as const}:{}),textDecoration:strike ? "line-through" : undefined}} /></foreignObject>;

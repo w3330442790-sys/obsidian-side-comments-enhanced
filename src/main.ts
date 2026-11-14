@@ -17,7 +17,8 @@ import { markPresentation } from './selection-tools';
 import { migrateLegacyData } from './legacy-data';
 import { BlockIndex, mapPlanRange, planBlockMove, type MovePlan } from './block-drag';
 import { blockDragExtension, blockMoveEffect, dispatchBlockMove } from './drag-handles';
-import { MARKDOWN_TOOLBAR_COMMANDS, applyMarkdownCommand, mountMarkdownToolbar } from './markdown-toolbar';
+import { MARKDOWN_TOOLBAR_COMMANDS, applyMarkdownCommand, mountMarkdownToolbar, refreshClozeToolbar } from './markdown-toolbar';
+import { createClozeExtension, toggleCloze } from './cloze';
 
 // --- Helper Functions ---
 
@@ -3358,6 +3359,7 @@ export default class SideNote extends MindmapPluginBase {
         this.registerEditorExtension([
             this.createSelectionToolbarPlugin(),
             ...this.createHighlightPlugin(),
+            createClozeExtension(),
             blockDragExtension({
                 isEnabled: view => this.isBlockDragEnabled(view),
                 onMove: (plan, view) => this.reanchorAfterBlockMove(plan, view),
@@ -3445,6 +3447,26 @@ export default class SideNote extends MindmapPluginBase {
                 if (!checking) view.showSearch(true);
                 return true;
             },
+        });
+        this.addCommand({
+            id: 'markdown-cloze-toggle',
+            name: 'Markdown 工具栏：显示 / 隐藏挖孔内容',
+            icon: 'eye-off',
+            checkCallback: checking => {
+                const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!view) return false;
+                if (!checking) {
+                    toggleCloze(view);
+                    refreshClozeToolbar(view);
+                }
+                return true;
+            },
+        });
+        this.addCommand({
+            id: 'markdown-cloze-mark',
+            name: '挖孔：将选中文字标记为 ==高亮==',
+            icon: 'highlighter',
+            editorCallback: editor => applyMarkdownCommand(editor, 'highlight'),
         });
         
         this.addCommand({

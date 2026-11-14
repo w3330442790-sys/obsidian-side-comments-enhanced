@@ -77,6 +77,7 @@ import { Key, t } from "./i18n";
 import { alignedTiers, tierOf } from "./custom-theme";
 import type { NoteCards, NoteCardState } from "./state";
 import { calloutFromMarker, calloutToMarker, COLOR_NAMES, convertLevelKind, markerText, newBlockId, normalizeNote, parseClipboard, splitByPunctuation, subtreeToList, unescapeNote } from "./markdown";
+import { COMMON_ICONS, EMOJI_CATEGORIES, clearNodeIcons, searchIcons, splitLeadingIcons, togglePlainIcon } from "./emoji-catalog";
 
 export interface CanvasHost {
   /** 嵌入的图拿到焦点时，截下会和画布按键撞车的 Obsidian 全局热键交给 onKey；返回注销函数 */
@@ -341,6 +342,7 @@ const ICONS: Record<string, string> = {
   // 虚线框里一只眼睛：把藏起来的节点显示出来
   hiddenNodes: '<svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M6 12s2.2-4 6-4 6 4 6 4-2.2 4-6 4-6-4-6-4z"/><circle cx="12" cy="12" r="1.5"/></svg>',
   recite: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7c2.1 0 3.8.7 5.2 1.7M22 12s-3.5 7-10 7c-2.1 0-3.8-.7-5.2-1.7M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></svg>',
+  cloze: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7c2.1 0 3.8.7 5.2 1.7M22 12s-3.5 7-10 7c-2.1 0-3.8-.7-5.2-1.7M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></svg>',
   layers: '<svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5ZM3 13l9 5 9-5M3 17l9 5 9-5"/></svg>',
   up: '<svg viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>',
   down: '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
@@ -353,6 +355,7 @@ const ICONS: Record<string, string> = {
   undo: '<svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>',
   redo: '<svg viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg>',
   marker: '<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.3l6-.8z"/></svg>',
+  icons: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c.8 1.4 2 2.2 3.5 2.2s2.7-.8 3.5-2.2"/><circle cx="9" cy="9.5" r="1"/><circle cx="15" cy="9.5" r="1"/></svg>',
   focus: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg>',
   paste: '<svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
@@ -495,6 +498,9 @@ export class MindMapCanvas {
   private sizes = new Map<string, Size>();
   private recite = false;
   private reciteButton: HTMLElement | null = null;
+  /** 挖孔模式：只遮 ==高亮==，不影响答案与选择题 */
+  private cloze = false;
+  private clozeButton: HTMLElement | null = null;
   /** 背诵模式下已揭晓答案的题目 */
   private revealedQuestions = new Set<string>();
   /** 背诵模式下点开了的答案节点 */
@@ -603,6 +609,8 @@ export class MindMapCanvas {
   private crumbs: HTMLElement | null = null;
   private markerPicker: HTMLElement | null = null;
   private markerPickerCleanup: (() => void) | null = null;
+  private iconPicker: HTMLElement | null = null;
+  private iconPickerCleanup: (() => void) | null = null;
   private dropHover: HTMLElement | null = null;
   private imgHandle: HTMLElement | null = null;
   private widthHandle: HTMLElement | null = null;
@@ -1074,6 +1082,7 @@ export class MindMapCanvas {
     this.lightbox = null;
     this.markerPicker = null;
     this.markerPickerCleanup = null;
+    this.closeIconPicker();
     this.edgePaths = [];
     for (const c of [...this.outsideCleanups]) c();
     this.toolbarTips = [];
@@ -3229,6 +3238,8 @@ export class MindMapCanvas {
     this.hiddenButton = btn("hiddenNodes", t("canvas.showHidden"), () => this.opts.onToggleHidden?.());
     this.reciteButton = btn("recite", t("canvas.recite"), () => this.setRecite(!this.recite));
     this.reciteButton.classList.toggle("is-active", this.recite);
+    this.clozeButton = btn("cloze", t("canvas.cloze"), () => this.setCloze(!this.cloze));
+    this.clozeButton.classList.toggle("is-active", this.cloze);
     const layers = btn("layers", t("canvas.foldLevels"), () => this.toggleFoldMenu(layers));
     this.el.append(bar);
     this.updateZoomLabel();
@@ -3255,6 +3266,16 @@ export class MindMapCanvas {
     for (const m of this.el.querySelectorAll(".mm-label mark.is-revealed")) m.classList.remove("is-revealed");
     // 节点 DOM 会复用，退出时把题目标签摘掉，免得撑宽节点
     if (!on) for (const tag of this.el.querySelectorAll(".mm-quiz-tag")) tag.remove();
+    this.render();
+  }
+
+  /** 挖孔模式：只遮 ==高亮== 并允许点开，不动答案、选择题或编辑状态。 */
+  setCloze(on: boolean): void {
+    if (this.cloze === on) return;
+    this.cloze = on;
+    this.el.classList.toggle("is-cloze", on);
+    this.clozeButton?.classList.toggle("is-active", on);
+    for (const m of this.el.querySelectorAll(".mm-label mark.is-revealed")) m.classList.remove("is-revealed");
     this.render();
   }
 
@@ -3313,7 +3334,7 @@ export class MindMapCanvas {
 
   /** 背诵模式下的单击：点到遮住的高亮就揭开 / 盖回；点到题目就揭晓 / 收起答案 */
   private onReciteClick(ev: MouseEvent): void {
-    if (!this.recite || this.editing) return;
+    if ((!this.recite && !this.cloze) || this.editing) return;
     const down = this.reciteDown;
     if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > DRAG_THRESHOLD) return;
     const target = ev.target as HTMLElement;
@@ -3322,6 +3343,8 @@ export class MindMapCanvas {
       mark.classList.toggle("is-revealed");
       return;
     }
+    // 挖孔只处理高亮，答案和选择题仍归背诵模式管。
+    if (!this.recite) return;
     const answerEl = target.closest<HTMLElement>(".gg-mm-node.is-answer, .gg-mm-node.is-answer-covered");
     const answer = answerEl ? this.nodeFromEl(answerEl) : null;
     if (answer) {
@@ -3479,6 +3502,7 @@ export class MindMapCanvas {
     tool("child", t("canvas.addChildTip", { key: "Tab" }), () => this.addChildToSelected());
     tool("sibling", t("canvas.addSiblingTip", { key: sc("Enter") }), () => this.addSiblingToSelected(false));
     tool("marker", t("canvas.markersTip"), () => this.toggleMarkerPicker());
+    tool("icons", t("canvas.iconsTip"), () => this.toggleIconPicker());
     tool("note", t("canvas.noteTip"), () => {
       if (this.primary) this.toggleNotePopover(this.primary, true);
     });
@@ -6188,6 +6212,154 @@ export class MindMapCanvas {
     const refocus = !!this.markerPicker?.contains(this.el.ownerDocument.activeElement);
     this.markerPicker?.remove();
     this.markerPicker = null;
+    if (refocus) this.el.focus({ preventScroll: true });
+  }
+
+  // ---------- 图标选择器 ----------
+
+  /** Group-exclusive markers keep their old semantics; other emoji are plain prefixes. */
+  private toggleNodeIcon(text: string, emoji: string): string {
+    const group = MARKER_GROUPS.find(candidate => candidate.emojis.includes(emoji));
+    return group ? toggleMarker(text, emoji) : togglePlainIcon(text, emoji);
+  }
+
+  private toggleIconPicker(): void {
+    if (this.iconPicker) {
+      this.closeIconPicker();
+      return;
+    }
+    if (!this.opts.editable || !this.primary || !this.selected.size) return;
+    const doc = this.el.ownerDocument;
+    const overlay = doc.createElement("div");
+    overlay.className = "mm-icon-overlay";
+    const panel = doc.createElement("div");
+    panel.className = "mm-icon-panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-label", t("canvas.iconsTitle"));
+    panel.addEventListener("pointerdown", ev => ev.stopPropagation());
+    overlay.append(panel);
+
+    const head = doc.createElement("div");
+    head.className = "mm-icon-head";
+    const title = doc.createElement("span");
+    title.className = "mm-icon-title";
+    title.textContent = t("canvas.iconsTitle");
+    const actions = doc.createElement("div");
+    actions.className = "mm-icon-actions";
+    const action = (label: string, run: () => void) => {
+      const button = doc.createElement("button");
+      button.type = "button";
+      button.className = "mm-icon-action";
+      button.textContent = label;
+      button.addEventListener("click", run);
+      actions.append(button);
+      return button;
+    };
+    action(t("canvas.iconsRandom"), () => {
+      const all = searchIcons("");
+      const emoji = all[Math.floor(Math.random() * all.length)];
+      if (emoji) applyIcon(emoji);
+    });
+    action(t("canvas.iconsRemove"), () => {
+      for (const node of this.selected) node.text = clearNodeIcons(node.text);
+      this.render();
+      this.notify();
+      this.closeIconPicker();
+    });
+    const close = doc.createElement("button");
+    close.type = "button";
+    close.className = "mm-icon-close";
+    close.setAttribute("aria-label", t("canvas.iconsClose"));
+    close.textContent = "×";
+    close.addEventListener("click", () => this.closeIconPicker());
+    actions.append(close);
+    head.append(title, actions);
+
+    const search = doc.createElement("input");
+    search.type = "search";
+    search.className = "mm-icon-search";
+    search.placeholder = t("canvas.iconsSearch");
+    search.setAttribute("aria-label", t("canvas.iconsSearch"));
+    const body = doc.createElement("div");
+    body.className = "mm-icon-body";
+    panel.append(head, search, body);
+
+    const refreshActive = () => {
+      const active = this.primary ? new Set(splitLeadingIcons(this.primary.text).icons) : new Set<string>();
+      panel.querySelectorAll<HTMLButtonElement>(".mm-icon-cell").forEach(button => {
+        button.classList.toggle("is-active", active.has(button.dataset.emoji ?? ""));
+      });
+    };
+    const section = (label: string, emojis: string[]) => {
+      const box = doc.createElement("section");
+      box.className = "mm-icon-section";
+      const heading = doc.createElement("div");
+      heading.className = "mm-icon-label";
+      heading.textContent = label;
+      const grid = doc.createElement("div");
+      grid.className = "mm-icon-grid";
+      for (const emoji of emojis) {
+        const button = doc.createElement("button");
+        button.type = "button";
+        button.className = "mm-icon-cell";
+        button.dataset.emoji = emoji;
+        button.textContent = emoji;
+        button.setAttribute("aria-label", emoji);
+        button.addEventListener("click", () => applyIcon(emoji));
+        grid.append(button);
+      }
+      box.append(heading, grid);
+      body.append(box);
+    };
+    const applyIcon = (emoji: string) => {
+      for (const node of this.selected) node.text = this.toggleNodeIcon(node.text, emoji);
+      this.render();
+      this.notify();
+      refreshActive();
+    };
+    const render = () => {
+      body.replaceChildren();
+      const query = search.value.trim();
+      const matches = query ? searchIcons(query) : null;
+      if (matches && matches.length === 0) {
+        const empty = doc.createElement("div");
+        empty.className = "mm-icon-empty";
+        empty.textContent = t("canvas.iconsEmpty");
+        body.append(empty);
+        return;
+      }
+      if (!matches) section(t("canvas.iconsCommon"), COMMON_ICONS);
+      if (matches) section(query, matches);
+      else for (const category of EMOJI_CATEGORIES) section(category.name, category.emojis);
+      refreshActive();
+    };
+    search.addEventListener("input", render);
+    overlay.addEventListener("pointerdown", ev => {
+      if (ev.target === overlay) this.closeIconPicker();
+    });
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.closeIconPicker();
+    };
+    doc.addEventListener("keydown", onKey, true);
+    render();
+    doc.body.append(overlay);
+    this.iconPicker = overlay;
+    this.iconPickerCleanup = () => {
+      doc.removeEventListener("keydown", onKey, true);
+      overlay.remove();
+    };
+    search.focus();
+  }
+
+  private closeIconPicker(): void {
+    const refocus = !!this.iconPicker?.contains(this.el.ownerDocument.activeElement);
+    this.iconPickerCleanup?.();
+    this.iconPickerCleanup = null;
+    this.iconPicker = null;
     if (refocus) this.el.focus({ preventScroll: true });
   }
 

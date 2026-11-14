@@ -60,6 +60,7 @@ export interface Actions {
   toggleEmoji(emoji:string):void;
   locked: boolean;
   studyMode: boolean;
+  clozeMode: boolean;
   showNotes: boolean;
   showCallouts: boolean;
 }
@@ -95,6 +96,7 @@ export function App({ host }: { host: Host }) {
   const [sourceReadOnly, setReadOnly] = useState(false);
   const [locked, setLocked] = useState(host.initialState?.locked ?? false);
   const [studyMode, setStudyMode] = useState(false);
+  const [clozeMode, setClozeMode] = useState(false);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [focusId, setFocusId] = useState<string | null>(null);
   const [showHidden,setShowHidden]=useState(host.initialState?.showHidden??host.editorSettings?.showHidden??false);
@@ -889,6 +891,7 @@ export function App({ host }: { host: Host }) {
     const id=explicitId??selRef.current[0]??d.root.id; const tp=getTopic(d,id);
     if(command==="lock"){setFolds({});if(editingRef.current)commitEdit();setLocked(v=>!v);setLinkingFrom(null);return;}
     if(command==="study"){setView("map");setSearch(null);if(editingRef.current)commitEdit();setStudyMode(v=>!v);setRevealed(new Set());setLinkingFrom(null);return;}
+    if(command==="cloze"){setView("map");setSearch(null);if(editingRef.current)commitEdit();setClozeMode(v=>!v);setRevealed(new Set());return;}
     if(command==="notes"){setShowNotes(v=>!v);return;}
     if(command==="callouts"){setShowCallouts(v=>!v);return;}
     if(command==="reveal"){revealStudy(id);return;}
@@ -948,7 +951,7 @@ export function App({ host }: { host: Host }) {
         canRedo: history.current.canRedo,
         exportAs,
         openLink,
-        notify, feature, locked, studyMode, showNotes, showCallouts,emojiGroups,
+        notify, feature, locked, studyMode, clozeMode, showNotes, showCallouts,emojiGroups,
         toggleEmoji:emoji=>{const d=docRef.current;if(d&&!readOnly)commit(toggleEmojiMarker(d,selectedTopics(),emoji,emojiGroups));},
       }
     : null;
@@ -1039,8 +1042,8 @@ export function App({ host }: { host: Host }) {
         {(() => {const path:Topic[]=[];const idx=indexDoc(doc);let e=idx.get(focusId);while(e){path.unshift(e.topic);e=e.parent?idx.get(e.parent.id):undefined;}return path.map(tp=><button key={tp.id} onClick={()=>feature("focus",tp.id)}>{tp.text || "Untitled"}</button>);})()}
         <span>Esc · 返回全图</span>
       </nav>}
-      {(studyMode || locked || (hidden.size>0||[...indexDoc(doc).values()].some(e=>e.topic.hidden))) && <div style={{padding:"4px 12px",display:"flex",gap:12}}>
-        {locked && <span>🔒 只读</span>}{studyMode && <span>学习模式 · 点击题目或遮挡内容揭晓</span>}{(hidden.size>0||[...indexDoc(doc).values()].some(e=>e.topic.hidden)) && <button onClick={()=>feature("showAll")}>{showHidden?"隐藏已隐藏节点":"显示隐藏节点"}</button>}
+      {(studyMode || clozeMode || locked || (hidden.size>0||[...indexDoc(doc).values()].some(e=>e.topic.hidden))) && <div style={{padding:"4px 12px",display:"flex",gap:12}}>
+        {locked && <span>🔒 只读</span>}{studyMode && <span>学习模式 · 点击题目或遮挡内容揭晓</span>}{clozeMode && <span>挖孔模式 · 点击高亮处揭晓</span>}{(hidden.size>0||[...indexDoc(doc).values()].some(e=>e.topic.hidden)) && <button onClick={()=>feature("showAll")}>{showHidden?"隐藏已隐藏节点":"显示隐藏节点"}</button>}
       </div>}
       <div className="wm-main">
         {outlineDock&&!studyMode&&view==="map"&&<aside aria-label="大纲面板" style={{width:280,minWidth:180,maxWidth:"40%",resize:"horizontal",overflow:"auto",borderRight:"1px solid #8884",display:"flex",flexDirection:"column"}}>
@@ -1067,7 +1070,7 @@ export function App({ host }: { host: Host }) {
             </div>
           )}
           {view === "map" ? (
-            <RichEnvironment.Provider value={{studyMode,revealed,showNotes,reveal:revealStudy,renderMath:host.renderMath,resolveImage:host.resolveResource,renderPdfCrop:host.renderPdfCrop,renderMarkdown:host.renderMarkdown,openTag:host.openTag,hoverLink:host.hoverLink,onImageResize:readOnly?undefined:(id,width)=>{const d=docRef.current,tp=d&&getTopic(d,id);if(d&&tp)commit(ops.setText(d,id,setImageWidth(tp.text,width)));}}}>
+            <RichEnvironment.Provider value={{studyMode,clozeMode,revealed,showNotes,reveal:revealStudy,renderMath:host.renderMath,resolveImage:host.resolveResource,renderPdfCrop:host.renderPdfCrop,renderMarkdown:host.renderMarkdown,openTag:host.openTag,hoverLink:host.hoverLink,onImageResize:readOnly?undefined:(id,width)=>{const d=docRef.current,tp=d&&getTopic(d,id);if(d&&tp)commit(ops.setText(d,id,setImageWidth(tp.text,width)));}}}>
             <Canvas
               doc={viewDoc!}
               scene={scene}

@@ -10,6 +10,7 @@ declare global {
         selection(): { from: number; to: number } | null;
         notices: string[];
         calls: string[];
+        clozeHidden(): boolean;
     }
 }
 
@@ -47,6 +48,7 @@ window.setup = () => {
         showSearch: (replace: boolean) => window.calls.push(`search:${replace}`),
     };
     dispose = mountMarkdownToolbar(fakeView as never, { onNotice: message => window.notices.push(message) });
+    window.clozeHidden = () => containerEl.classList.contains('mt-cloze-hidden');
 };
 
 window.doc = () => view?.state.doc.toString() ?? '';

@@ -98,6 +98,28 @@ test("study highlights conceal their content and reveal the owning topic", () =>
   } finally {(globalThis as any).document=prior;}
 });
 
+test("cloze mode masks highlights while leaving normal text visible", () => {
+  class ClozeElement {
+    children:ClozeElement[]=[]; parent?:ClozeElement; textContent=""; style:Record<string,string>={};dataset:Record<string,string>={};tabIndex=-1;
+    listeners:Record<string,(event:any)=>void>={};attributes:Record<string,string>={};
+    get firstChild(){return this.children[0];}
+    append(child:ClozeElement){if(child.parent)child.parent.children=child.parent.children.filter(x=>x!==child);child.parent=this;this.children.push(child);}
+    replaceChildren(){this.children=[];}
+    setAttribute(key:string,value:string){this.attributes[key]=value;}
+    addEventListener(key:string,value:(event:any)=>void){this.listeners[key]=value;}
+  }
+  const prior=(globalThis as any).document;
+  (globalThis as any).document={createElement:()=>new ClozeElement(),createTextNode:(text:string)=>Object.assign(new ClozeElement(),{textContent:text})};
+  try {
+    const {fillRichElement}=require("../../vendor/personal-mindmap/webview/src/RichTopic");
+    const root=new ClozeElement();
+    fillRichElement(root,"==answer== visible",{clozeMode:true,topicId:"a",revealed:new Set()});
+    assert.equal(root.children[0].children[0].style.visibility,"hidden");
+    assert.equal(root.children[0].attributes["aria-label"],"Reveal highlighted answer");
+    assert.equal(root.children[1].textContent," visible");
+  } finally {(globalThis as any).document=prior;}
+});
+
 test("attachment dimensions and media embeds are parsed safely", () => {
   const {mediaKind}=require("../../vendor/personal-mindmap/webview/src/rich");
   assert.equal(mediaKind("lecture.mp4#t=30"),"video");

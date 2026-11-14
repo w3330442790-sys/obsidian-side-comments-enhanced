@@ -1828,6 +1828,7 @@ body.is-mobile .sidenote-selection-toolbar {
     cursor: pointer;
 }
 .mt-md-toolbar-btn:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
+.mt-md-toolbar-btn.is-active { color: var(--interactive-accent); background: var(--background-modifier-hover); }
 .mt-md-toolbar-btn:active { background: var(--background-modifier-active-hover); }
 .mt-md-toolbar-btn:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 1px; }
 .mt-md-toolbar-btn .svg-icon { width: 16px; height: 16px; }
@@ -1885,6 +1886,21 @@ body.mt-drag-cursor * { cursor: grabbing !important; }
     color: var(--interactive-accent);
     font-size: 12px;
     line-height: 1;
+}
+
+/* --- Cloze (挖孔) mode: ==highlight== text stays in the note but is masked --- */
+.mt-cloze-hidden :is(.markdown-rendered mark, .markdown-preview-view mark),
+.mt-cloze-hidden .cm-editor :is(.mt-cloze, .cm-highlight) {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    background: var(--background-modifier-hover);
+    box-shadow: inset 0 -1.5px 0 var(--interactive-accent);
+    border-radius: 2px;
+    cursor: pointer;
+}
+.mt-cloze-hidden :is(.markdown-rendered mark, .markdown-preview-view mark) * {
+    visibility: hidden;
 }
 
 @media (pointer: coarse) {
@@ -4715,6 +4731,84 @@ body.gg-mm-outline-wrap .mm-outline-row > :not(.mm-outline-text) { margin-top: 0
 .mm-marker-picker .mm-menu-item { margin-top: 4px; justify-content: center; font-size: 12px; color: var(--text-muted, #666); }
 .mm-marker-picker .mm-menu-item::before { display: none; }
 
+/* ---------- 节点图标选择器 ---------- */
+.mm-icon-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.mm-icon-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 94vw);
+  max-height: min(720px, 86vh);
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border, #ddd);
+  border-radius: 12px;
+  background: var(--background-primary, #fff);
+  color: var(--text-normal, #222);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+.mm-icon-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--background-modifier-border, #ddd);
+}
+.mm-icon-title { font-weight: 600; }
+.mm-icon-actions { display: flex; align-items: center; gap: 4px; }
+.mm-icon-action,
+.mm-icon-close {
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border, #ddd);
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted, #666);
+  font-size: 12px;
+  cursor: pointer;
+}
+.mm-icon-action:hover,
+.mm-icon-close:hover { background: var(--background-modifier-hover, #f0f0f0); color: var(--text-normal, #222); }
+.mm-icon-close { width: 28px; padding: 4px 0; font-size: 16px; line-height: 1; }
+.mm-icon-search {
+  margin: 10px 12px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--background-modifier-border, #ddd);
+  border-radius: 7px;
+  background: var(--background-secondary, #f7f7f7);
+  color: var(--text-normal, #222);
+}
+.mm-icon-search:focus { outline: 2px solid var(--interactive-accent); outline-offset: 1px; }
+.mm-icon-body { overflow-y: auto; padding: 8px 12px 14px; }
+.mm-icon-section { margin-top: 10px; }
+.mm-icon-label { margin-bottom: 4px; color: var(--text-muted, #666); font-size: 12px; }
+.mm-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; }
+.mm-icon-cell {
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.mm-icon-cell:hover { background: var(--background-modifier-hover, #f0f0f0); }
+.mm-icon-cell.is-active {
+  border-color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+}
+.mm-icon-empty { padding: 24px 0; color: var(--text-muted, #666); text-align: center; font-size: 13px; }
+
 
 /* ==========================================================================
    主题。每个主题只覆盖需要的变量；行为（连线形状、分支色、下划线、间距）在 theme.ts。
@@ -5018,14 +5112,14 @@ body.gg-mm-outline-wrap .mm-outline-row > :not(.mm-outline-text) { margin-top: 0
 /* 复习时用不上编辑工具栏，点题目也不让它盖住选项 */
 .gg-mm-root.is-recite .mm-nodebar { visibility: hidden; }
 /* ==高亮== 遮成一道横线，点一下揭开 */
-.gg-mm-root.is-recite .mm-label mark:not(.is-revealed) {
+.gg-mm-root:is(.is-recite, .is-cloze) .mm-label mark:not(.is-revealed) {
   color: transparent;
   background: rgba(127, 127, 127, 0.12);
   box-shadow: inset 0 -1.5px 0 var(--mm-selection);
   cursor: pointer;
 }
-.gg-mm-root.is-recite .mm-label mark:not(.is-revealed) * { visibility: hidden; }
-.gg-mm-root.is-recite .mm-label mark.is-revealed { cursor: pointer; }
+.gg-mm-root:is(.is-recite, .is-cloze) .mm-label mark:not(.is-revealed) * { visibility: hidden; }
+.gg-mm-root:is(.is-recite, .is-cloze) .mm-label mark.is-revealed { cursor: pointer; }
 /* 选择题：没揭晓时所有选项都像没勾；揭晓后正确的变绿、错误的变淡 */
 .gg-mm-root.is-recite .mm-task { cursor: default; }
 .gg-mm-root.is-recite .gg-mm-node.is-option:not(.is-option-shown) .mm-task.is-done { background: none; opacity: 0.7; }

@@ -72,6 +72,16 @@ async function check(name,fn){await fn();results.push(name);console.log('PASS '+
    assert.equal(await page.evaluate(()=>window.__sidebarSwipes),0);
    await command(page,'toggleLock');await page.setViewportSize({width:1450,height:980});await command(page,'fit');
  });
+ await check('cloze button masks highlights in the primary canvas',async()=>{
+   const tb=page.locator('.wm-toolbar');
+   const cloze=tb.getByRole('button',{name:'挖孔',exact:true});
+   assert.equal(await cloze.count(),1);
+   await cloze.click();
+   const hidden=page.locator('.wm-topic[data-id="high"] span[style*="visibility: hidden"]');
+   assert.ok((await hidden.count())>0);
+   await cloze.click();
+   assert.equal(await hidden.count(),0);
+ });
  await check('Weilanx toolbar preserves actions and exposes theme style menu',async()=>{
    const tb=page.locator('.wm-toolbar');
    for(const title of ['主题 (Enter)','子主题 (Tab)','联系线','概括','外框','结构','主题风格','导出','大纲','格式']) assert.equal(await tb.locator(`button[title="${title}"]`).count(),1);

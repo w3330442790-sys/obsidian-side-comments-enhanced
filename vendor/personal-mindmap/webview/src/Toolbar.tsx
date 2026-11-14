@@ -82,6 +82,7 @@ export function Toolbar({ position, actions: a, view, setView, panel, togglePane
         {(close)=><div className="wm-menu-list">{[
           ["lock",a.locked?"解锁编辑":"锁定只读",false],
           ["study",a.studyMode?"退出学习模式":"学习模式",false],
+          ["cloze",a.clozeMode?"显示挖孔内容":"隐藏挖孔内容",false],
           ["notes",a.showNotes?"收起备注卡片":"展开备注卡片",false],
           ["callouts",a.showCallouts?"隐藏标注":"显示标注",false],
           ["outlineDock","切换大纲面板",false],
@@ -100,6 +101,7 @@ export function Toolbar({ position, actions: a, view, setView, panel, togglePane
       </Menu>
       <div className="wm-tb-spacer" />
       <div className="wm-tb-group">
+        <Btn icon={<Icon.eye />} label="挖孔" onClick={() => a.feature("cloze")} active={a.clozeMode} title={a.clozeMode ? "显示挖孔内容" : "隐藏挖孔内容"} />
         <Btn icon={<Icon.search />} onClick={openSearch} disabled={view !== "map"} title={`${t("find")} (${isMac ? "⌘F" : "Ctrl+F"})`} />
         <Btn icon={<Icon.laser />} label={t("laserShort")} onClick={toggleLaser} active={laser} disabled={view !== "map"} title={t("laser")} />
       </div>
