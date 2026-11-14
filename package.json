@@ -1,6 +1,6 @@
 {
-  "name": "markdown-tool",
-  "version": "1.3.2",
+  "name": "taube-markdown-tool",
+  "version": "1.4.0",
   "description": "Markdown annotations and synchronized outline/mind-map editing.",
   "main": "main.js",
   "scripts": {

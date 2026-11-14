@@ -3246,7 +3246,7 @@ export default class SideNote extends Plugin {
     }
 
     async onload() {
-        await migrateLegacyData(this.app, this.manifest.id, 'side-comments-origin', ['data.json', 'enhancements.json']);
+        await migrateLegacyData(this.app, this.manifest.id, ['personal-markdown-tool', 'side-comments-origin'], ['data.json', 'enhancements.json']);
         // Heal orphaned floating windows and stale cross-reload modal references first.
         CommentModal.closeActive();
         await this.loadPluginData();

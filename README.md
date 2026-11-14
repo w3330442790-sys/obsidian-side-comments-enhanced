@@ -1,11 +1,11 @@
-# Markdown Tool
+# Taube Markdown Tool
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.3.2**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**1.4.0**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
-- 插件 ID：`personal-markdown-tool`，独立于原社区版更新
-- [下载最新版本](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest)
+- 插件 ID：`taube-markdown-tool`，独立于原社区版更新
+- [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)
 
 ## 手机和平板安装：BRAT
 
@@ -14,15 +14,15 @@
 3. 填入仓库地址：
 
    ```text
-   w3330442790-sys/obsidian-side-comments-enhanced
+   w3330442790-sys/taube-markdown-tool
    ```
 
-4. 选择最新版本（Latest），添加并启用 **Markdown Tool**。
+4. 选择最新版本（Latest），添加并启用 **Taube Markdown Tool**。
 5. 后续通过 BRAT 检查此仓库的更新。
 
 这是通过 GitHub／BRAT 安装的版本，尚未作为独立插件提交到 Obsidian 官方插件目录。
 
-如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。1.2.1 起使用独立 ID `personal-markdown-tool`，原版保持停用。首次启用时仅在新目录缺少对应文件时复制旧 `side-comments-origin` 的 data.json 与 enhancements.json，保留自定义批注路径、筛选和未知字段；不删除旧目录、不改笔记。后续设置保存在新插件目录。
+如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。1.4.0 起插件 ID 与仓库统一为 `taube-markdown-tool`，原版与旧的 `personal-markdown-tool` 目录都保持停用、不删除。首次启用新 ID 时，仅在新目录缺少对应文件时按「personal-markdown-tool → side-comments-origin」的顺序复制 data.json 与 enhancements.json，保留自定义批注路径、筛选和未知字段；不删除旧目录、不改笔记。之后设置保存在新插件目录。启用新插件后请在“设置 → 第三方插件”里停用旧的 `personal-markdown-tool` 与 `side-comments-origin`，避免同时写入批注数据。
 
 ## 已有批注与跨设备同步
 
@@ -74,7 +74,7 @@ Markdown 是正文来源；关联线、总括子树与节点标识保存在文�
 
 ## 手动安装与回退
 
-从 [Release](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`，放入笔记库的 `.obsidian/plugins/personal-markdown-tool/` 后重载插件。保留旧 `side-comments-origin` 数据目录用于首次设置迁移，旧版保持停用。
+从 [Release](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest) 下载 `main.js`、`manifest.json`、`styles.css`，放入笔记库的 `.obsidian/plugins/taube-markdown-tool/` 后重载插件。保留旧 `side-comments-origin` 数据目录用于首次设置迁移，旧版保持停用。
 
 不要替换自己的 `data.json`、`enhancements.json` 或批注数据目录。回退时只恢复旧插件的程序文件，避免用旧备份覆盖升级后的新批注。
 
@@ -82,4 +82,4 @@ Markdown 是正文来源；关联线、总括子树与节点标识保存在文�
 
 参见 [构建说明](BUILD.md)。源码、安装包均不包含使用者的笔记、批注、草稿或本地备份。
 
-原项目作者为 **peyote**，原项目采用 **GPL-3.0-only**，本增强版沿用相同许可。原作者署名、[LICENSE](LICENSE) 和 [上游说明](README.upstream.md) 保留。增强版维护仓库为 [w3330442790-sys/obsidian-side-comments-enhanced](https://github.com/w3330442790-sys/obsidian-side-comments-enhanced)。
+原项目作者为 **peyote**，原项目采用 **GPL-3.0-only**，本增强版沿用相同许可。原作者署名、[LICENSE](LICENSE) 和 [上游说明](README.upstream.md) 保留。增强版维护仓库为 [w3330442790-sys/taube-markdown-tool](https://github.com/w3330442790-sys/taube-markdown-tool)。

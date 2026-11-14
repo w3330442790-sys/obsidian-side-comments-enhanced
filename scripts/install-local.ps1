@@ -2,12 +2,12 @@ param([Parameter(Mandatory=$true)][string]$VaultPath)
 $ErrorActionPreference = 'Stop'
 $projectPath = Split-Path -Parent $PSScriptRoot
 $resolvedVault = (Resolve-Path -LiteralPath $VaultPath).Path
-$targetPath = Join-Path $resolvedVault '.obsidian\plugins\side-comments-origin'
+$manifest = Get-Content -Raw -LiteralPath (Join-Path $projectPath 'manifest.json') | ConvertFrom-Json
+$targetPath = Join-Path $resolvedVault ('.obsidian\plugins\' + $manifest.id)
 $target = (Resolve-Path -LiteralPath $targetPath).Path
 if (-not $target.StartsWith($resolvedVault.TrimEnd('\') + '\', [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Target is outside the requested vault' }
-$manifest = Get-Content -Raw -LiteralPath (Join-Path $projectPath 'manifest.json') | ConvertFrom-Json
 $installed = Get-Content -Raw -LiteralPath (Join-Path $target 'manifest.json') | ConvertFrom-Json
-if ($manifest.id -ne 'side-comments-origin' -or $manifest.version -ne '1.1.0' -or $installed.id -ne $manifest.id) { throw 'Unexpected plugin identity/version' }
+if ($installed.id -ne $manifest.id) { throw 'Unexpected plugin identity' }
 $backupPath = Join-Path $projectPath ('private\before-install-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
 Copy-Item -LiteralPath $target -Destination (Join-Path $backupPath 'plugin') -Recurse

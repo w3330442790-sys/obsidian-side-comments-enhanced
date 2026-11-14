@@ -1,6 +1,6 @@
 # 构建与验证
 
-Markdown Tool 1.2.0，基于 Side-Comments-origin 的兼容增强版，原许可 GPL-3.0-only。保留原插件 ID，直接替换升级，不并行启用副本。Markdown 解析／树操作／格式合并复用 MIT 许可的 gogoga Mind Map 0.34.0；许可见 `src/mindmap/vendor/LICENSE`。
+Taube Markdown Tool 1.4.0，基于 Side-Comments-origin 的兼容增强版，原许可 GPL-3.0-only。插件 ID 为 taube-markdown-tool，从旧 ID 的设置目录迁移；不并行启用副本。Markdown 解析／树操作／格式合并复用 MIT 许可的 gogoga Mind Map 0.34.0；许可见 `src/mindmap/vendor/LICENSE`。
 
 ```powershell
 npm ci --ignore-scripts

@@ -39,4 +39,26 @@ for(const [name,file,loader] of [
   const migrate=load().migrateLegacyData;a.equal(typeof migrate,'function');
   await a.rejects(()=>migrate(f.app,'new','old',['data.json','enhancements.json']));a.deepEqual(f.writes,[]);
  });
+ test(name+': the newest legacy identity wins and older ones are a fallback',async()=>{
+  const migrate=load().migrateLegacyData;
+  const newest='{ "from": "personal" }';
+  const oldest='{ "from": "side-comments" }';
+  const both=run({
+   '.custom/plugins/personal-markdown-tool/data.json':newest,
+   '.custom/plugins/side-comments-origin/data.json':oldest,
+  });
+  await migrate(both.app,'new',['personal-markdown-tool','side-comments-origin'],['data.json']);
+  a.equal(both.files.get('.custom/plugins/new/data.json'),newest);
+
+  const fallback=run({'.custom/plugins/side-comments-origin/data.json':oldest});
+  await migrate(fallback.app,'new',['personal-markdown-tool','side-comments-origin'],['data.json']);
+  a.equal(fallback.files.get('.custom/plugins/new/data.json'),oldest);
+
+  const invalidNewest=run({
+   '.custom/plugins/personal-markdown-tool/data.json':'broken',
+   '.custom/plugins/side-comments-origin/data.json':oldest,
+  });
+  await a.rejects(()=>migrate(invalidNewest.app,'new',['personal-markdown-tool','side-comments-origin'],['data.json']));
+  a.deepEqual(invalidNewest.writes,[]);
+ });
 }

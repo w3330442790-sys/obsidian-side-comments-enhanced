@@ -1,3 +1,11 @@
+# 1.4.0 · 2026-11-14 · 统一为 Taube Markdown Tool
+
+- 插件改名为 **Taube Markdown Tool**，插件 ID 与 GitHub 仓库统一为 `taube-markdown-tool`。
+- 新 ID 首次启用时按「`personal-markdown-tool` → `side-comments-origin`」顺序复制 `data.json` 与 `enhancements.json`，新目录已有文件不覆盖；旧目录全部保留，批注数据目录 `side-note-data` 不变。
+- BRAT 地址更新为 `w3330442790-sys/taube-markdown-tool`；旧地址会由 GitHub 跳转。
+- 启用新插件后请停用旧的 `personal-markdown-tool` 与 `side-comments-origin`，避免多个插件同时写批注数据。
+- 功能、设置项与批注格式不变；新增旧身份迁移测试与优先级测试。
+
 # 1.3.2 · 2026-11-14 · 拖动手柄可见性修复
 
 - 修复拖动手柄的 CSS 类名不匹配（`.cm-mt-drag-gutter` → `.mt-drag-gutter`）：此前手柄一直透明且只有约 8px 宽，几乎无法发现和点中，拖动功能看起来“完全没生效”。
