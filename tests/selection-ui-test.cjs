@@ -6,6 +6,8 @@ const { chromium } = require('playwright');
 const esbuild = require('esbuild');
 const root = path.resolve(__dirname, '..');
 fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
+let source = fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8').replace(/from (["'])\.\//g, 'from $1../src/').replace(/from (["'])\.\.\/vendor\/personal-mindmap\/src\/obsidian\/main\1/g, "from '../tests/mindmap-base-stub'");
+fs.writeFileSync(path.join(root, 'artifacts/main-selection-test.ts'), source + '\nexport { SideNoteView, CommentModal };\n');
 esbuild.buildSync({ entryPoints: [path.join(__dirname, 'selection-ui-entry.ts')], bundle: true, outfile: path.join(root, 'artifacts/selection-ui.bundle.js'), platform: 'browser', external: ['buffer'], alias: { obsidian: path.join(__dirname, 'obsidian-mock.ts') }, logLevel: 'warning' });
 const css = fs.readFileSync(path.join(root, 'styles.css'), 'utf8') + fs.readFileSync(path.join(root, 'styles-selection.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'artifacts/selection-ui.bundle.js'), 'utf8');

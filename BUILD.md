@@ -1,6 +1,6 @@
 # 构建与验证
 
-Taube Markdown Tool 1.4.0，基于 Side-Comments-origin 的兼容增强版，原许可 GPL-3.0-only。插件 ID 为 taube-markdown-tool，从旧 ID 的设置目录迁移；不并行启用副本。Markdown 解析／树操作／格式合并复用 MIT 许可的 gogoga Mind Map 0.34.0；许可见 `src/mindmap/vendor/LICENSE`。
+Taube Markdown Tool 2.0.0，基于 Side-Comments-origin 的兼容增强版（GPL-3.0-only），并内置原“融合 Mindmap（personal-mindmap）”完整画布。插件 ID 为 `taube-markdown-tool`，从旧 ID 的设置目录迁移；不并行启用副本。完整画布复用 MIT 许可的 Weilanx Mind Map 0.2.0 与 gogoga Mind Map 0.34.0 源码，许可与上游提交见 `vendor/personal-mindmap/`、`vendor/personal-mindmap/UPSTREAM.md` 和 `THIRD_PARTY_NOTICES.md`。
 
 ```powershell
 npm ci --ignore-scripts
@@ -12,11 +12,18 @@ npm run test:ui
 
 UI 测试使用锁定的 Playwright 开发依赖。默认浏览器为本机 Microsoft Edge，可通过 `BROWSER_PATH` 指定 Chromium 可执行文件。测试仅创建合成笔记与内存 Vault，不连接真实 Obsidian 或笔记库。
 
-`scripts/verify-legacy.cjs <vault-path>` 是本次维护用的只读核对脚本，需要本地 private/backup-20261104/side-note-data 备份；真实备份不在发布包或源码包中。
+## 2.0.0 构建结构
 
-## 1.2.0 验证范围
+- `src/main.ts`：批注、拖动、工具栏与插件入口；`SideNote` 继承内置画布基类，一个实例注册两部分能力。
+- `vendor/personal-mindmap/`：原融合 Mindmap 的 Obsidian 入口层、`src/core`、`src/fusion`、`vendor/gogoga/src` 与 `webview/src`；不含 VS Code 扩展与 CLI。
+- 视图类型：Markdown 脑图复用 `markdown-tool-mindmap`（旧轻量画布标签可直接升级），`.wmind` 为 `taube-markdown-tool-wmind`，`.xmind` 为 `taube-markdown-tool-xmind`；`personal-mindmap-*` 旧类型注册转发视图。
+- 设置：批注仍在 `data.json`；脑图写到 `mindmap-settings.json`；`state.json` 保存锁定／备注状态。首次加载从 `personal-mindmap/data.json` 与 `state.json` 迁移一次。
+- `styles.css` 由 `scripts/build-styles.mjs` 生成：`styles.tool.css` + 作用域化的完整画布样式 + gogoga 样式。不要直接编辑生成段。
+- `main.js` 会内联 React 画布、手绘字体与许可证声明；`scripts/verify-bundle.mjs` 检查没有动态脚本、`eval()` 或 `new Function()`。
 
-`npm test` 覆盖批注筛选、草稿、标记、Markdown 保真、重复节点、关系与总括子树、历史与冲突保存。`npm run test:ui` 顺序执行原批注回归、选区工具栏和导图／视图切换集成交互检查。测试不读取真实笔记。真实 iPad／安卓硬件未在本次环境验收。
+## 验证范围
+
+`npm test` 覆盖批注筛选、草稿、标记、Markdown 保真、拖动几何、工具栏命令、合并插件的视图／命令／设置分文件与旧 `personal-mindmap` 迁移，以及原融合 Mindmap 的 126 项核心与宿主测试。`npm run test:ui` 顺序执行批注侧栏、选区工具栏、拖动、Markdown 工具栏和完整画布浏览器检查。测试不读取真实笔记。真实 iPad／安卓硬件未在本次环境验收。
 
 ## 1.1.0 历史验收
 

@@ -1,0 +1,1485 @@
+import {
+  Component,
+  FileView,
+  finishRenderMath,
+  getLanguage,
+  HoverParent,
+  ItemView,
+  loadMathJax,
+  loadPrism,
+  MarkdownPostProcessorContext,
+  MarkdownRenderChild,
+  MarkdownRenderer,
+  MarkdownView,
+  Menu,
+  MenuItem,
+  moment,
+  Notice,
+  setTooltip,
+  Plugin,
+  renderMath,
+  Scope,
+  TAbstractFile,
+  TFile,
+  TFolder,
+  WorkspaceLeaf,
+  ViewState,
+} from "obsidian";
+
+const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"]);
+import { locateBlock, replaceBlock } from "./codeblock";
+import { preserveFormat } from "./merge";
+import { Key, setLocale, t } from "./i18n";
+import { MARKDOWN_ICON, MINDMAP_ICON, MINDMAP_LIST_ICON, registerMindMapIcon } from "./icon";
+import { PropertyIconDecorator } from "./property-icon";
+import { MenuLike, registerNotebookNavigatorMenus } from "./nn-menus";
+import { NotePickerModal } from "./note-picker";
+import { isStructure } from "./layout";
+import { History } from "./history";
+import { CanvasHost, flattenMenu, MenuEntry, MindMapCanvas, NodeCommand, redrawAllCanvases, setSpacingScale } from "./canvas";
+import { fillTemplate, frontmatterValue, lineOfPath, parseMarkdown, pathAtLine, RootRule, serializeMarkdown, setFrontmatterValue, withFrontmatter } from "./markdown";
+import { DEFAULT_SETTINGS, indentString, MindMapSettings, MindMapSettingTab, SavedViewport } from "./settings";
+import { edgeFromFrontmatter, isThemeId } from "./theme";
+import { customThemeCss, getCustomTheme, normalizeCustomTheme, PREVIEW_ID, setCustomThemes } from "./custom-theme";
+import { MindMapView, VIEW_TYPE_MINDMAP } from "./view";
+import { parseCustomMarkers, setCustomMarkers } from "./inline";
+import { VIEW_TYPE_XMIND, XmindView } from "./xmind-view";
+import { registerMindMapEmbeds } from "./embed";
+import { FileStateStore, LEGACY_KEYS, LegacyFileState, NoteCards, ViewportStore } from "./state";
+
+const FRONTMATTER_KEY = "mindmap";
+/** 页面预览的来源 id；注册后「页面预览」设置里会出现本插件的开关，默认和 Obsidian 一样按住 ⌘ 才弹 */
+const HOVER_SOURCE = "gogoga-mindmap";
+/** 文件列表插件（Notebook Navigator、Iconize 等）读的图标属性 */
+const ICON_KEY = "icon";
+
+export default class MindMapPlugin extends Plugin {
+  settings: MindMapSettings = { ...DEFAULT_SETTINGS };
+  /** 锁定、备注展开、隐藏标注：插件目录下的 state.json，和设置分开 */
+  fileState!: FileStateStore;
+  /** 视口：只存本机 */
+  viewports!: ViewportStore;
+  /** 用户明确要求以 Markdown 打开的文件，跳过一次视图重定向 */
+  private markdownOverride = new Set<string>();
+  /** 脑图笔记临时以 Markdown 打开时，标签页右上角那个「以思维导图打开」按钮 */
+  private mapButtons = new Map<MarkdownView, HTMLElement>();
+
+  private mathReady = false;
+  private propertyIcons: PropertyIconDecorator | null = null;
+
+  async onload(): Promise<void> {
+    // 界面语言跟随 Obsidian；必须在注册命令、视图、功能区图标和设置页之前定下来
+    setLocale(getLanguage());
+    registerMindMapIcon();
+    await this.loadSettings();
+    this.applyCustomThemes();
+    this.applyCustomMarkers(false);
+    this.applyEmbedToolbar();
+    this.applyDisplayScale(false);
+    this.registerEvent(this.app.workspace.on("window-open", (win) => this.injectCustomCss(win.doc)));
+    this.registerEvent(this.app.workspace.on("window-open", (win) => this.applyEmbedToolbar(win.doc)));
+    this.registerEvent(this.app.workspace.on("window-open", (win) => this.setFontScale(win.doc)));
+    this.register(() => {
+      this.applyEmbedToolbar(undefined, false);
+      for (const d of this.allDocs()) {
+        d.body.style.removeProperty("--mm-font-scale");
+        d.body.style.removeProperty("--mm-note-max-h");
+        d.body.style.removeProperty("--mm-note-max-w");
+      }
+    });
+    this.register(() => {
+      for (const m of [...this.openThemeEditors]) m.close();
+      for (const el of this.customCssEls) el.remove();
+      this.customCssEls = [];
+    });
+    // 公式和代码高亮的引擎按需加载；失败也不影响其他功能
+    void loadMathJax().then(() => (this.mathReady = true)).catch(() => undefined);
+    void loadPrism().catch(() => undefined);
+    this.registerHoverLinkSource(HOVER_SOURCE, { display: t("hover.display"), defaultMod: true });
+    this.registerView(VIEW_TYPE_MINDMAP, (leaf) => new MindMapView(leaf, this));
+    this.registerView(VIEW_TYPE_XMIND, (leaf) => new XmindView(leaf, this));
+    this.registerExtensions(["xmind"], VIEW_TYPE_XMIND);
+    this.addSettingTab(new MindMapSettingTab(this.app, this));
+    this.patchSetViewState();
+    this.registerCodeBlock();
+    registerMindMapEmbeds(this);
+    this.registerCommands();
+
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file, _source, leaf) => {
+        if (file instanceof TFolder) this.addFolderMenuItems(menu, file);
+        else this.addFileMenuItems(menu, file, leaf);
+      }),
+    );
+    // Notebook Navigator 自己吞掉右键菜单，不走 file-menu 事件，得单独接一份
+    this.register(
+      registerNotebookNavigatorMenus(this.app, {
+        folder: (menu, folder, tweak) => this.addFolderMenuItems(menu, folder, tweak),
+        file: (menu, file) => this.addFileMenuItems(menu, file),
+      }),
+    );
+
+    // 属性面板里的 icon 一行：加图标预览，去掉被误判成外链的观感
+    this.propertyIcons = new PropertyIconDecorator(this.app);
+    const refreshProps = () => this.propertyIcons?.schedule();
+    this.registerEvent(this.app.workspace.on("file-open", refreshProps));
+    this.registerEditorSync();
+    this.registerSplitSync();
+    this.registerFollowActive();
+    const syncButtons = () => this.syncMapButtons();
+    this.registerEvent(this.app.workspace.on("layout-change", syncButtons));
+    this.registerEvent(this.app.workspace.on("file-open", syncButtons));
+    this.registerEvent(this.app.metadataCache.on("changed", syncButtons));
+    this.app.workspace.onLayoutReady(syncButtons);
+    this.register(() => {
+      for (const el of this.mapButtons.values()) el.remove();
+      this.mapButtons.clear();
+    });
+    this.registerEvent(this.app.workspace.on("layout-change", refreshProps));
+    this.registerEvent(this.app.workspace.on("active-leaf-change", refreshProps));
+    // 记住的视口、锁定、标注隐藏这些状态跟着文件改名 / 删除走
+    this.registerEvent(
+      this.app.vault.on("rename", (f, oldPath) => {
+        this.fileState.rename(oldPath, f.path);
+        this.viewports.rename(oldPath, f.path);
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on("delete", (f) => {
+        this.fileState.remove(f.path);
+        this.viewports.remove(f.path);
+      }),
+    );
+    // 别的设备同步过来改了 state.json：切回 Obsidian 时读回来，打开着的脑图跟上
+    const refreshState = () => void this.fileState.refresh().then((changed) => changed && this.applyFileState());
+    this.registerDomEvent(window, "focus", refreshState);
+    this.registerEvent(this.app.workspace.on("window-open", (win) => this.registerDomEvent(win.win, "focus", refreshState)));
+    this.register(() => void this.fileState.flush());
+    this.register(() => {
+      if (this.saveTimer === null) return;
+      window.clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+      void this.saveSettings();
+    });
+    this.registerEvent(this.app.metadataCache.on("changed", refreshProps));
+    this.register(() => {
+      this.propertyIcons?.destroy();
+      this.propertyIcons = null;
+    });
+
+    this.app.workspace.onLayoutReady(() => {
+      this.convertOpenLeaves();
+      this.propertyIcons?.schedule();
+    });
+  }
+
+  /**
+   * Taube Markdown Tool keeps its annotation settings in data.json. The fused
+   * mind map therefore owns a separate settings file in the same plugin
+   * directory, so saving either side can never overwrite the other.
+   */
+  private settingsPath(): string {
+    return `${this.manifest.dir}/mindmap-settings.json`;
+  }
+
+  private statePath(): string {
+    return `${this.manifest.dir}/state.json`;
+  }
+
+  private async readSettingsFile(path: string): Promise<Record<string, unknown> | null> {
+    try {
+      if (!(await this.app.vault.adapter.exists(path))) return null;
+      const parsed: unknown = JSON.parse(await this.app.vault.adapter.read(path));
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+    } catch (error) {
+      console.error("[Taube Markdown Tool] 无法读取思维导图设置", path, error);
+      return null;
+    }
+  }
+
+  async loadSettings(): Promise<void> {
+    let raw = (await this.readSettingsFile(this.settingsPath())) as (Partial<MindMapSettings> & LegacyFileState) | null;
+    let migrated = false;
+    if (!raw) {
+      // One-time migration from the standalone plugin this editor was fused from.
+      const legacy = `${this.app.vault.configDir}/plugins/personal-mindmap/data.json`;
+      raw = (await this.readSettingsFile(legacy)) as (Partial<MindMapSettings> & LegacyFileState) | null;
+      migrated = raw !== null;
+    }
+    const settings = raw ?? {};
+    this.settings = { ...DEFAULT_SETTINGS, ...settings };
+    try {
+      const adapter = this.app.vault.adapter;
+      if (!(await adapter.exists(this.statePath()))) {
+        const legacyState = `${this.app.vault.configDir}/plugins/personal-mindmap/state.json`;
+        if (await adapter.exists(legacyState)) await adapter.write(this.statePath(), await adapter.read(legacyState));
+      }
+    } catch (error) {
+      console.error("[Taube Markdown Tool] 无法迁移旧思维导图状态", error);
+    }
+    this.fileState = new FileStateStore(this.app.vault.adapter, this.statePath());
+    await this.fileState.load();
+    this.viewports = new ViewportStore(this.app);
+    if (migrated) await this.saveSettings();
+    // 0.28.2 以前这些按文件的状态都记在 data.json 里：搬过去，再从设置里删掉
+    if (LEGACY_KEYS.some((k) => k in settings)) {
+      const legacy = settings as Partial<MindMapSettings> & LegacyFileState;
+      const flags = (list?: string[]) => Object.fromEntries((list ?? []).map((p) => [p, true]));
+      this.fileState.fill("hiddenCallouts", flags(legacy.hiddenCallouts));
+      this.fileState.fill("locked", flags(legacy.lockedFiles));
+      this.fileState.fill("notesExpanded", legacy.notesExpandedFiles ?? {});
+      if (legacy.viewports) this.viewports.fill(legacy.viewports);
+      const s = this.settings as MindMapSettings & LegacyFileState;
+      for (const k of LEGACY_KEYS) delete s[k];
+      await this.fileState.flush();
+      await this.saveSettings();
+    }
+    this.settings.customThemes = this.settings.customThemes.map(normalizeCustomTheme);
+    // 0.3.x 用的是借来的 lucide:git-fork；裸的 mindmap-tree 又不被文件列表插件认，统一迁到带前缀的值
+    if (this.settings.listIcon === "lucide:git-fork" || this.settings.listIcon === MINDMAP_ICON) {
+      this.settings.listIcon = MINDMAP_LIST_ICON;
+      await this.saveSettings();
+    }
+  }
+
+  /**
+   * 嵌入的脑图（代码块、![[笔记]]）自动隐藏工具栏：开关挂在 body 上，样式表按阅读 / 编辑模式分别处理。
+   * 新开的独立窗口也要挂；卸载插件时摘掉
+   */
+  applyEmbedToolbar(doc?: Document, on = true): void {
+    for (const d of doc ? [doc] : this.allDocs()) {
+      d.body.classList.toggle("gg-mm-embed-toolbar-autohide", on && this.settings.embedToolbarAutoHide);
+      // 大纲面板显示完整标题（换行），默认一行放不下就省略
+      d.body.classList.toggle("gg-mm-outline-wrap", on && this.settings.outlineWrap);
+    }
+  }
+
+  /** 主窗口和打开着的独立窗口 */
+  private allDocs(): Document[] {
+    const docs = new Set<Document>([document]);
+    this.app.workspace.iterateAllLeaves((l) => docs.add(l.view.containerEl.ownerDocument));
+    return [...docs];
+  }
+
+  /**
+   * 设置里的节点间距、节点字号：间距交给排版，字号写成 body 上的 --mm-font-scale（样式表和自定义主题都乘它）。
+   * 改了以后所有画布重新量、重新排
+   */
+  applyDisplayScale(redraw = true): void {
+    setSpacingScale(this.settings.spacingScale / 100);
+    for (const d of this.allDocs()) this.setFontScale(d);
+    if (redraw) redrawAllCanvases();
+  }
+
+  private setFontScale(doc: Document): void {
+    const k = this.settings.fontScale / 100;
+    if (k === 1) doc.body.style.removeProperty("--mm-font-scale");
+    else doc.body.style.setProperty("--mm-font-scale", String(k));
+    const h = this.settings.noteMaxHeight;
+    if (h === DEFAULT_SETTINGS.noteMaxHeight) doc.body.style.removeProperty("--mm-note-max-h");
+    else doc.body.style.setProperty("--mm-note-max-h", `${h}px`);
+    const w = this.settings.noteMaxWidth;
+    if (w === DEFAULT_SETTINGS.noteMaxWidth) doc.body.style.removeProperty("--mm-note-max-w");
+    else doc.body.style.setProperty("--mm-note-max-w", `${w}px`);
+  }
+
+  /** 笔记文件（不是代码块）的中心主题规则：设置「用文件名作中心主题」打开时，一级标题不再升格 */
+  rootRule(): RootRule {
+    return { rootFromH1: !this.settings.fileNameAsRoot, headingsOnly: this.settings.headingsOnly, showHidden: this.showHidden };
+  }
+
+  /** 「显示隐藏的节点」：只在这次运行里有效，所有脑图一起切换 */
+  showHidden = false;
+
+  toggleShowHidden(): void {
+    this.showHidden = !this.showHidden;
+    this.reloadMaps();
+  }
+
+  async saveSettings(): Promise<void> {
+    await this.app.vault.adapter.write(this.settingsPath(), JSON.stringify(this.settings, null, 2) + "\n");
+  }
+
+  private saveTimer: number | null = null;
+  /** 连续改设置（拖滑块之类）时攒一下再写 data.json */
+  saveSettingsSoon(): void {
+    if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
+    this.saveTimer = window.setTimeout(() => {
+      this.saveTimer = null;
+      void this.saveSettings();
+    }, 1500);
+  }
+
+  /** state.json 读回了别的设备的改动：打开着的脑图跟上 */
+  private applyFileState(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP)) {
+      if (leaf.view instanceof MindMapView) leaf.view.applyFileState();
+    }
+  }
+
+  // ---------- 标注的显示 / 隐藏（按文件记） ----------
+
+  isCalloutsHidden(path: string): boolean {
+    return !!path && !!this.fileState.get("hiddenCallouts", path);
+  }
+
+  setCalloutsHidden(path: string, hidden: boolean): void {
+    this.fileState.set("hiddenCallouts", path, hidden || undefined);
+  }
+
+  // ---------- 备注展开（默认值在设置里，工具栏上切换过的按文件记） ----------
+
+  isNotesExpanded(path: string): boolean {
+    return (path ? this.fileState.get("notesExpanded", path) : undefined) ?? this.settings.notesExpanded;
+  }
+
+  setNotesExpanded(path: string, expanded: boolean): void {
+    this.fileState.set("notesExpanded", path, expanded);
+  }
+
+  /** 每条展开备注单独的状态（单独收起、拖出来的大小） */
+  getNoteCards(path: string): NoteCards | undefined {
+    return path ? this.fileState.get("noteCards", path) : undefined;
+  }
+
+  setNoteCards(path: string, cards: NoteCards): void {
+    this.fileState.set("noteCards", path, Object.keys(cards).length ? cards : undefined);
+  }
+
+  // ---------- 锁定编辑（按文件记，不写进笔记） ----------
+
+  isLocked(path: string): boolean {
+    return !!path && !!this.fileState.get("locked", path);
+  }
+
+  setLocked(path: string, locked: boolean): void {
+    if (!path) return;
+    this.fileState.set("locked", path, locked || undefined);
+    // 同一个文件开在别的标签页里的脑图跟着锁上 / 解开
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP)) {
+      const v = leaf.view;
+      if (v instanceof MindMapView && v.file?.path === path) v.applyLock(locked);
+    }
+  }
+
+  // ---------- 记住视口 ----------
+
+  getViewport(path: string): SavedViewport | undefined {
+    return this.settings.rememberViewport ? this.viewports.get(path) : undefined;
+  }
+
+  rememberViewport(path: string, vp: Omit<SavedViewport, "at">): void {
+    // 文件刚被删掉时视图随后关闭还会再记一次，跳过已经不存在的文件
+    if (!this.settings.rememberViewport || !path || !this.app.vault.getAbstractFileByPath(path)) return;
+    this.viewports.set(path, { ...vp, at: Date.now() });
+  }
+
+  // ---------- 自定义主题 ----------
+
+  private customCssEls: HTMLStyleElement[] = [];
+  /** 打开着的主题编辑器：插件卸载 / 重载时一并关掉，免得旧代码继续往样式表里写 */
+  openThemeEditors = new Set<{ close(): void }>();
+
+  /** 设置里的自定义主题 → 注册表 + 样式表，并让已打开的脑图重画 */
+  applyCustomThemes(): void {
+    setCustomThemes(this.settings.customThemes);
+    this.refreshCustomCss();
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP)) {
+      if (leaf.view instanceof MindMapView) leaf.view.refreshTheme();
+    }
+  }
+
+  /** 设置里的自定义标记 → 标记面板；redraw 时让已打开的脑图按新的标记重新识别、重画 */
+  applyCustomMarkers(redraw = true): void {
+    setCustomMarkers(parseCustomMarkers(this.settings.customMarkers), this.settings.customMarkersExclusive);
+    if (!redraw) return;
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP)) {
+      if (leaf.view instanceof MindMapView) leaf.view.redrawAll();
+    }
+  }
+
+  /**
+   * 标题改名后修别的笔记里的链接：[[笔记#旧标题]] / [[笔记#上级#旧标题]] / ![[笔记#旧标题]] 改成新标题。
+   * 只改链接目标确实是这篇笔记、而且那一段标题完全一致的；笔记自己里面的 [[#旧标题]] 不动（正在写这篇）
+   */
+  fixHeadingLinks(file: TFile, renames: Map<string, string>): void {
+    if (!renames.size) return;
+    const sources = Object.entries(this.app.metadataCache.resolvedLinks)
+      .filter(([src, targets]) => src !== file.path && targets[file.path])
+      .map(([src]) => src);
+    void (async () => {
+      let count = 0;
+      for (const src of sources) {
+        const srcFile = this.app.vault.getAbstractFileByPath(src);
+        const cache = srcFile instanceof TFile ? this.app.metadataCache.getFileCache(srcFile) : null;
+        if (!(srcFile instanceof TFile) || !cache) continue;
+        const swaps: [string, string][] = [];
+        for (const l of [...(cache.links ?? []), ...(cache.embeds ?? [])]) {
+          const hash = l.link.indexOf("#");
+          if (hash < 0) continue;
+          if (this.app.metadataCache.getFirstLinkpathDest(l.link.slice(0, hash), src) !== file) continue;
+          const parts = l.link.slice(hash + 1).split("#");
+          const last = parts[parts.length - 1];
+          const to = renames.get(last);
+          if (to === undefined) continue;
+          // 原文里的写法：wikilink 是原样，Markdown 链接可能是编码过的
+          for (const from of [`#${last}`, `#${encodeURI(last)}`, `#${last.replace(/ /g, "%20")}`]) {
+            if (!l.original.includes(from)) continue;
+            const enc = from === `#${last}` ? to : from === `#${encodeURI(last)}` ? encodeURI(to) : to.replace(/ /g, "%20");
+            swaps.push([l.original, l.original.replace(from, `#${enc}`)]);
+            break;
+          }
+        }
+        if (!swaps.length) continue;
+        await this.app.vault.process(srcFile, (text) => {
+          for (const [a, b] of swaps) {
+            if (!text.includes(a)) continue;
+            text = text.split(a).join(b);
+            count++;
+          }
+          return text;
+        });
+      }
+      if (count) new Notice(t("notice.headingLinksUpdated", { n: count }));
+    })();
+  }
+
+  /** 中心主题规则这类影响解析的设置变了：已打开的脑图重新解析 */
+  reloadMaps(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP)) {
+      if (leaf.view instanceof MindMapView) leaf.view.reloadFromSettings();
+    }
+  }
+
+  /** 重新生成样式表（含编辑器里的预览主题），主窗口和弹出窗口都写一份 */
+  refreshCustomCss(): void {
+    this.customCssEls = this.customCssEls.filter((el) => el.isConnected);
+    const docs = new Set<Document>([document, ...this.customCssEls.map((el) => el.ownerDocument)]);
+    for (const doc of docs) this.injectCustomCss(doc);
+  }
+
+  /** 写进指定窗口的样式表；设置页开在单独窗口时，主题编辑器要把样式直接写进那个窗口 */
+  injectCustomCss(doc: Document): void {
+    const preview = getCustomTheme(PREVIEW_ID);
+    const css = customThemeCss([...this.settings.customThemes, ...(preview ? [preview] : [])]);
+    // 同一个 id 只留一份（插件重载前留下的旧元素直接接管）
+    let el = this.customCssEls.find((e) => e.ownerDocument === doc) ?? (doc.getElementById("gogoga-mindmap-custom-themes") as HTMLStyleElement | null) ?? undefined;
+    if (el && !this.customCssEls.includes(el)) this.customCssEls.push(el);
+    if (!el) {
+      el = doc.createElement("style");
+      el.id = "gogoga-mindmap-custom-themes";
+      doc.head.append(el);
+      this.customCssEls.push(el);
+    }
+    if (el.textContent !== css) el.textContent = css;
+  }
+
+  /** 给所有还没有 icon 属性的脑图笔记补上，返回处理数量 */
+  async addListIcons(): Promise<void> {
+    const icon = this.settings.listIcon;
+    if (!icon) {
+      new Notice(t("notice.setIconFirst"));
+      return;
+    }
+    const targets = this.app.vault
+      .getMarkdownFiles()
+      .filter((f) => this.isMindMapFile(f.path) && !this.app.metadataCache.getCache(f.path)?.frontmatter?.[ICON_KEY]);
+    if (!targets.length) {
+      new Notice(t("notice.allHaveIcons"));
+      return;
+    }
+    let done = 0;
+    for (const file of targets) {
+      try {
+        await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+          fm[ICON_KEY] = icon;
+        });
+        done += 1;
+      } catch (e) {
+        console.error(t("log.iconWriteFailed", { path: file.path }), e);
+      }
+    }
+    new Notice(t("notice.iconsAdded", { count: done }));
+  }
+
+  /** 把设置里的工具栏位置应用到所有打开的脑图视图（except 可跳过刚发起改动的那个） */
+  applyToolbarPosition(except?: MindMapView): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP)) {
+      const view = leaf.view;
+      if (view instanceof MindMapView && view !== except) view.setToolbarPosition(this.settings.toolbarPosition);
+    }
+  }
+
+  // ---------- 视图切换 ----------
+
+  isMindMapFile(path: string): boolean {
+    const fm = this.app.metadataCache.getCache(path)?.frontmatter;
+    const v: unknown = fm?.[FRONTMATTER_KEY];
+    return v === true || v === "true" || (typeof v === "string" && v.length > 0 && v !== "false");
+  }
+
+  private patchSetViewState(): void {
+    const shouldRedirect = (file: string) => !this.markdownOverride.has(file) && this.isMindMapFile(file);
+    const proto = WorkspaceLeaf.prototype;
+    // 原型上的方法要留着以后还原，取的是未绑定的函数本身，调用时再 call 回当前 leaf
+    const original = Object.getOwnPropertyDescriptor(proto, "setViewState")!.value as (
+      this: WorkspaceLeaf,
+      state: ViewState,
+      eState?: unknown,
+    ) => Promise<void>;
+    proto.setViewState = function (this: WorkspaceLeaf, state: ViewState, eState?: unknown): Promise<void> {
+      const file = state?.state?.file;
+      // 已经以 Markdown 打开的同一文件（阅读/编辑模式切换等）不再拦回脑图
+      const current = this.view as { file?: TFile } | undefined;
+      const alreadyMarkdown = this.view?.getViewType() === "markdown" && current?.file?.path === file;
+      if (state?.type === "markdown" && typeof file === "string" && !alreadyMarkdown && shouldRedirect(file)) {
+        state = { ...state, type: VIEW_TYPE_MINDMAP };
+      }
+      return original.call(this, state, eState);
+    };
+    this.register(() => {
+      proto.setViewState = original;
+    });
+  }
+
+  private convertOpenLeaves(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      const file = (leaf.view as { file?: TFile }).file;
+      if (file && this.isMindMapFile(file.path)) void this.openAsMindMap(file, leaf);
+    }
+  }
+
+  /** 从脑图切到 Markdown：选中了节点就跳到它那一行（先落盘，行号按文件里的实际文本算） */
+  async openAsMarkdown(file: TFile, leaf: WorkspaceLeaf): Promise<void> {
+    const from = leaf.view;
+    let path: string | null = null;
+    if (from instanceof MindMapView && from.file === file) {
+      path = from.getSelectedPath();
+      from.rememberViewportNow();
+      await from.save();
+    }
+    this.markdownOverride.add(file.path);
+    try {
+      await leaf.setViewState({ type: "markdown", state: { file: file.path, mode: "source" }, active: true });
+    } finally {
+      this.markdownOverride.delete(file.path);
+    }
+    if (path === null) return;
+    const view = leaf.view;
+    if (!(view instanceof MarkdownView) || view.file !== file) return;
+    const line = lineOfPath(view.editor.getValue(), path, this.rootRule());
+    if (line === null) return;
+    const editor = view.editor;
+    editor.setCursor({ line, ch: editor.getLine(line).length });
+    editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: 0 } }, true);
+    editor.focus();
+  }
+
+  /**
+   * The top-right action is available on every Markdown tab, not only notes that
+   * already carry `mindmap: true`. It deliberately passes remember=false: one
+   * click switches the current tab without writing frontmatter or creating a
+   * second file. The mindmap view has the symmetric "open as Markdown" action.
+   */
+  private syncMapButtons(): void {
+    const live = new Set<MarkdownView>();
+    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      const view = leaf.view;
+      if (!(view instanceof MarkdownView) || !view.file) continue;
+      live.add(view);
+      if (this.mapButtons.has(view)) continue;
+      const el = view.addAction(MINDMAP_ICON, "切换为思维导图（不修改文件）", () => {
+        const file = view.file;
+        if (!file) return;
+        void (async () => {
+          try {
+            await view.save();
+            await this.openAsMindMap(file, view.leaf, false);
+          } catch (error) {
+            new Notice(`切换失败：${(error as Error).message}`);
+          }
+        })();
+      });
+      el.classList.add("wm-md-mindmap-action");
+      const label = el.ownerDocument.createElement("span");
+      label.className = "wm-md-mindmap-label";
+      label.textContent = "思维导图";
+      el.appendChild(label);
+      this.mapButtons.set(view, el);
+    }
+    for (const [view, el] of this.mapButtons) {
+      if (live.has(view)) continue;
+      el.remove();
+      this.mapButtons.delete(view);
+    }
+  }
+
+  /**
+   * 分屏联动（设置里打开）：同一文件的脑图和 Markdown 同时显示时，Markdown 里的光标换了行，
+   * 脑图选中对应节点。光标移动没有公开事件，用 document 的 selectionchange（CodeMirror 会同步 DOM 选区），
+   * 只认有焦点的编辑器 —— 脑图那边带过来的光标不会再弹回去
+   */
+  /** 分屏联动最近一次对上的「文件 + 行」：两边互相带的时候靠它别来回弹 */
+  private lastFollowKey = "";
+
+  private registerSplitSync(): void {
+    let timer: number | null = null;
+    const onSelectionChange = (ev: Event) => {
+      if (!this.settings.syncSplit) return;
+      // 找这个窗口里光标所在的编辑器：不用 activeLeaf，独立窗口里的编辑器不一定是它
+      const doc = ev.target as Document;
+      const view = this.app.workspace
+        .getLeavesOfType("markdown")
+        .map((l) => l.view)
+        .find((v): v is MarkdownView => v instanceof MarkdownView && v.containerEl.doc === doc && v.editor.hasFocus());
+      const file = view?.file;
+      if (!view || !file || !view.editor.hasFocus()) return;
+      const maps = this.visibleMapsOf(file.path);
+      if (!maps.length) return;
+      if (timer !== null) window.clearTimeout(timer);
+      // 比 editor-change 的 150ms 晚一点：打字换行时等脑图先跟上新内容
+      timer = window.setTimeout(() => {
+        timer = null;
+        if (!view.editor.hasFocus()) return;
+        const line = view.editor.getCursor().line;
+        const key = `${file.path}\u0001${line}`;
+        if (key === this.lastFollowKey) return;
+        this.lastFollowKey = key;
+        const text = view.editor.getValue();
+        for (const m of this.visibleMapsOf(file.path)) m.followLine(text, line);
+      }, 200);
+    };
+    // 每个窗口有自己的 document：主窗口之外，独立窗口打开时也要挂上
+    const watched = new WeakSet<Document>();
+    const watch = (doc: Document) => {
+      if (watched.has(doc)) return;
+      watched.add(doc);
+      this.registerDomEvent(doc, "selectionchange", onSelectionChange);
+    };
+    watch(document);
+    this.registerEvent(this.app.workspace.on("window-open", (win) => watch(win.doc)));
+    this.app.workspace.onLayoutReady(() => this.allDocs().forEach(watch));
+    this.register(() => {
+      if (timer !== null) window.clearTimeout(timer);
+    });
+  }
+
+  /**
+   * 跟随当前笔记（设置里打开）：编辑器里换了一篇 Markdown 笔记，旁边正显示着的脑图也换成它。
+   * 只动一个脑图标签页（最近用过的那个），钉住的不动；那篇已经有脑图在显示就不用换
+   */
+  private registerFollowActive(): void {
+    const follow = () => {
+      if (!this.settings.followActiveNote) return;
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      const file = view?.file;
+      if (!view || !file || file.extension !== "md") return;
+      const maps = this.app.workspace
+        .getLeavesOfType(VIEW_TYPE_MINDMAP)
+        .filter((l) => l !== view.leaf && l.view instanceof MindMapView && l.view.containerEl.isShown());
+      if (!maps.length || maps.some((l) => (l.view as MindMapView).file?.path === file.path)) return;
+      const target = maps
+        .filter((l) => !(l as WorkspaceLeaf & { pinned?: boolean }).pinned)
+        .sort((a, b) => ((b as unknown as { activeTime?: number }).activeTime ?? 0) - ((a as unknown as { activeTime?: number }).activeTime ?? 0))[0];
+      if (!target) return;
+      const mapView = target.view as MindMapView;
+      mapView.rememberViewportNow();
+      void target.setViewState({ type: VIEW_TYPE_MINDMAP, state: { file: file.path }, active: false });
+    };
+    this.registerEvent(this.app.workspace.on("file-open", follow));
+    this.registerEvent(this.app.workspace.on("active-leaf-change", follow));
+  }
+
+  /** 正在显示（不是藏在别的标签页后面）的同一文件的脑图 */
+  private visibleMapsOf(path: string): MindMapView[] {
+    return this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_MINDMAP)
+      .map((l) => l.view)
+      .filter((v): v is MindMapView => v instanceof MindMapView && v.file?.path === path && v.containerEl.isShown());
+  }
+
+  /** 分屏联动的另一半：脑图里选中了节点，旁边显示着的同一文件的 Markdown 滚到那一行，不抢焦点 */
+  syncMarkdownToMap(from: MindMapView): void {
+    if (!this.settings.syncSplit || !from.file) return;
+    const path = from.getSelectedPath();
+    if (path === null) return;
+    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      const view = leaf.view;
+      if (!(view instanceof MarkdownView) || view.file?.path !== from.file.path || !view.containerEl.isShown()) continue;
+      // 用户正在那边打字：光标是他的，不去动。各窗口各记各的焦点：Markdown 开在别的窗口时，
+      // 它的编辑器一直显示「有焦点」，可人正在这边点脑图，不算在打字
+      if (view.editor.hasFocus() && view.containerEl.doc === from.containerEl.doc) continue;
+      const editor = view.editor;
+      const line = lineOfPath(editor.getValue(), path, this.rootRule());
+      if (line === null) continue;
+      // 记成已跟随过的那一行：别的窗口里的编辑器还带着焦点，这次移光标引起的 selectionchange 不再弹回脑图
+      this.lastFollowKey = `${from.file.path}\u0001${line}`;
+      editor.setCursor({ line, ch: editor.getLine(line).length });
+      editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: 0 } }, true);
+      this.flashLine(view, line);
+    }
+  }
+
+  /**
+   * 联动跳到的那一行底色闪一下。直接对行元素放 Web Animation：不碰 CodeMirror 的装饰，
+   * 它重设 class 也不影响；滚动后那一行要等 CodeMirror 画出来，所以晚两帧再找
+   */
+  private flashLine(view: MarkdownView, line: number): void {
+    type CM = { state: { doc: { lines: number; line(n: number): { from: number } } }; domAtPos(pos: number): { node: Node } };
+    const cm = (view.editor as unknown as { cm?: CM }).cm;
+    if (!cm || line + 1 > cm.state.doc.lines) return;
+    const pos = cm.state.doc.line(line + 1).from;
+    // 用编辑器所在窗口的：Markdown 开在独立窗口里时，主窗口在后台，它的动画帧会被节流
+    const win = view.containerEl.win;
+    win.requestAnimationFrame(() =>
+      win.requestAnimationFrame(() => {
+        const node = cm.domAtPos(pos).node;
+        const el = (node.instanceOf(HTMLElement) ? node : node.parentElement)?.closest<HTMLElement>(".cm-line");
+        if (!el?.animate) return;
+        const color = win.getComputedStyle(el).getPropertyValue("--text-highlight-bg").trim() || "rgba(255, 208, 0, 0.4)";
+        el.animate([{ backgroundColor: color }, { backgroundColor: color, offset: 0.5 }, { backgroundColor: "transparent" }], { duration: 1500, easing: "ease-out" });
+      }),
+    );
+  }
+
+  /** Markdown 编辑器打字时，同一文件的脑图视图随之更新（分屏预览靠它做到实时） */
+  private registerEditorSync(): void {
+    const timers = new Map<string, number>();
+    this.registerEvent(
+      this.app.workspace.on("editor-change", (editor, info) => {
+        const path = info.file?.path;
+        if (!path) return;
+        const views = this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP).map((l) => l.view).filter((v): v is MindMapView => v instanceof MindMapView && v.file?.path === path);
+        if (!views.length) return;
+        window.clearTimeout(timers.get(path));
+        timers.set(
+          path,
+          window.setTimeout(() => {
+            timers.delete(path);
+            const text = editor.getValue();
+            for (const v of views) v.syncFromEditor(text);
+          }, 150),
+        );
+      }),
+    );
+    this.register(() => timers.forEach((id) => window.clearTimeout(id)));
+  }
+
+  /**
+   * 左右分屏对照：左边 Markdown，右边脑图，都不写 frontmatter。
+   * leaf 正显示着这篇的脑图（脑图笔记默认就是）：先把它换成 Markdown，再在右侧开脑图；
+   * 没给 leaf、或 leaf 显示的不是这篇：在当前标签页打开 Markdown
+   */
+  async openSideBySide(file: TFile, leaf?: WorkspaceLeaf): Promise<void> {
+    const target = leaf ?? this.app.workspace.getLeaf(false);
+    const view = target.view;
+    if (!(view instanceof MarkdownView && view.file === file)) await this.openAsMarkdown(file, target);
+    this.app.workspace.setActiveLeaf(target, { focus: true });
+    await this.openPreview(file);
+  }
+
+  /** 在右侧分屏用脑图看当前笔记，不写 frontmatter；已经开着就直接显示那个 */
+  async openPreview(file: TFile): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_MINDMAP).find((l) => (l.view as MindMapView).file?.path === file.path);
+    if (existing) {
+      await this.app.workspace.revealLeaf(existing);
+      return;
+    }
+    const source = this.app.workspace.getMostRecentLeaf();
+    const leaf = this.app.workspace.getLeaf("split", "vertical");
+    await leaf.setViewState({ type: VIEW_TYPE_MINDMAP, state: { file: file.path }, active: false });
+    // 新分屏会抢走焦点；预览是给人看的，光标留在原来的编辑器里
+    if (source) this.app.workspace.setActiveLeaf(source, { focus: true });
+  }
+
+  async openAsMindMap(file: TFile, leaf: WorkspaceLeaf, remember = this.settings.rememberView): Promise<void> {
+    const icon = this.settings.listIcon;
+    const needsIcon = !!icon && !this.app.metadataCache.getCache(file.path)?.frontmatter?.[ICON_KEY];
+    if (remember && (!this.isMindMapFile(file.path) || needsIcon)) {
+      await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+        fm[FRONTMATTER_KEY] = true;
+        if (needsIcon) fm[ICON_KEY] = icon;
+      });
+    }
+    // 从 Markdown 切过来：选中光标所在的那个节点（中心主题那行不算，回到上次的位置更有用）
+    const from = leaf.view;
+    let path: string | null = null;
+    if (from instanceof MarkdownView && from.file === file) {
+      path = pathAtLine(from.editor.getValue(), from.editor.getCursor().line, this.rootRule());
+      if (path === "") path = null;
+    }
+    await leaf.setViewState({ type: VIEW_TYPE_MINDMAP, state: { file: file.path }, active: true });
+    if (path !== null && leaf.view instanceof MindMapView) leaf.view.revealPath(path);
+  }
+
+  // ---------- 命令 ----------
+
+  private registerCommands(): void {
+    this.addCommand({
+      id: "toggle-view",
+      name: t("command.toggleView"),
+      checkCallback: (checking) => {
+        const view = this.app.workspace.getActiveViewOfType(FileView);
+        const leaf = view?.leaf;
+        const file = view?.file;
+        if (!leaf || !file || !view) return false;
+        const type = view.getViewType();
+        if (type !== "markdown" && type !== VIEW_TYPE_MINDMAP) return false;
+        if (!checking) void (type === "markdown" ? this.openAsMindMap(file, leaf) : this.openAsMarkdown(file, leaf));
+        return true;
+      },
+    });
+
+    this.addCommand({
+      id: "new-mindmap",
+      name: t("command.newMindMap"),
+      callback: () => void this.createMindMap(),
+    });
+
+    this.addRibbonIcon(MINDMAP_ICON, t("command.newMindMap"), () => void this.createMindMap());
+
+    const exportCommand = (id: string, name: string, run: (view: MindMapView) => Promise<void>) =>
+      this.addCommand({
+        id,
+        name,
+        checkCallback: (checking) => {
+          const view = this.app.workspace.getActiveViewOfType(MindMapView);
+          if (!view) return false;
+          if (!checking) void run(view);
+          return true;
+        },
+      });
+    this.addCommand({
+      id: "open-preview",
+      name: t("command.openPreview"),
+      checkCallback: (checking) => {
+        // Markdown 和脑图视图里都能用：当前显示哪一边，另一边就开到右侧
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView) ?? this.app.workspace.getActiveViewOfType(MindMapView);
+        const file = view?.file;
+        if (!view || !file || file.extension !== "md") return false;
+        if (!checking) void this.openSideBySide(file, view.leaf);
+        return true;
+      },
+    });
+
+    exportCommand("link-note", t("command.linkNote"), (v) => v.linkSelectedToNote());
+    exportCommand("toggle-outline", t("command.toggleOutline"), (v) => v.toggleOutline());
+
+    this.addCommand({
+      id: "add-list-icons",
+      name: t("command.addListIcons"),
+      callback: () => void this.addListIcons(),
+    });
+    exportCommand("focus-branch", t("command.focusBranch"), async (v) => v.focusSelected());
+    exportCommand("exit-focus", t("command.exitFocus"), async (v) => v.exitFocus());
+    exportCommand("copy-node-link", t("command.copyNodeLink"), (v) => v.copySelectedNodeLink());
+    exportCommand("search", t("command.search"), async (v) => v.openSearch());
+    // 画布里的按键（/、数字键、⌘⇧B…）不是命令，快捷键面板里看不到；这里再注册一份，用户可以自己绑键。不设默认热键
+    exportCommand("toggle-fold", t("command.toggleFold"), async (v) => v.toggleFoldSelected());
+    for (const n of [1, 2, 3, 4, 5]) exportCommand(`show-level-${n}`, t("command.showLevel", { n }), async (v) => v.showLevelFromSelected(n));
+    exportCommand("fit-branch", t("command.fitBranch"), async (v) => v.fitSelectedBranch());
+    exportCommand("toggle-box", t("command.toggleBox"), async (v) => v.toggleBoxOnSelected());
+    exportCommand("toggle-summary", t("command.toggleSummary"), async (v) => v.toggleSummaryOnSelected());
+    exportCommand("toggle-recite", t("command.toggleRecite"), async (v) => v.toggleRecite());
+    exportCommand("toggle-callouts", t("command.toggleCallouts"), async (v) => v.toggleCallouts());
+    exportCommand("toggle-notes", t("command.toggleNotes"), async (v) => v.toggleNotes());
+    exportCommand("toggle-hidden", t("command.toggleHidden"), async () => this.toggleShowHidden());
+    exportCommand("toggle-lock", t("command.toggleLock"), async (v) => v.toggleLock());
+    exportCommand("reveal-in-markdown", t("command.revealInMarkdown"), async (v) => {
+      if (v.file) await this.openAsMarkdown(v.file, v.leaf);
+    });
+    // 画布里的基础按键（Tab、Enter、Delete…）也注册成命令，用户可以绑成 XMind 的习惯；原来的按键照常可用
+    const nodeCommands: [string, NodeCommand, Key][] = [
+      ["add-child", "add-child", "command.addChild"],
+      ["add-sibling", "add-sibling", "command.addSibling"],
+      ["insert-before", "insert-before", "command.insertBefore"],
+      ["insert-parent", "insert-parent", "command.insertParent"],
+      ["edit-node", "edit", "command.editNode"],
+      ["edit-callout", "callout", "command.editCallout"],
+      ["add-relationship", "add-rel", "command.addRel"],
+      ["delete-node", "delete", "command.deleteNode"],
+      ["delete-node-only", "delete-only", "command.deleteNodeOnly"],
+      ["move-up", "move-up", "command.moveUp"],
+      ["move-down", "move-down", "command.moveDown"],
+      ["outdent", "outdent", "command.outdent"],
+      ["indent", "indent", "command.indent"],
+      ["expand-branch", "expand-branch", "command.expandBranch"],
+    ];
+    for (const [id, cmd, name] of nodeCommands) exportCommand(id, t(name), async (v) => v.runNodeCommand(cmd));
+    exportCommand("expand-all", t("command.expandAll"), async (v) => v.setFoldLevel(null));
+    exportCommand("collapse-all", t("command.collapseAll"), async (v) => v.setFoldLevel(1));
+    exportCommand("export-png", t("command.exportPng"), (v) => v.exportPng());
+    exportCommand("export-svg", t("command.exportSvg"), (v) => v.exportSvg());
+    exportCommand("copy-png", t("command.copyPng"), (v) => v.copyPng());
+  }
+
+  private addFolderMenuItems(menu: MenuLike, folder: TFolder, tweak?: (item: MenuItem) => void): void {
+    menu.addItem((item) => {
+      item
+        .setTitle(t("command.newMindMap"))
+        .setIcon(MINDMAP_ICON)
+        // 核心文件列表里跟「新建笔记 / 新建文件夹 / 新建画布」同组，我们注册得晚，自然排在最后
+        .setSection("action-primary")
+        .onClick(() => void this.createMindMap(folder));
+      tweak?.(item);
+    });
+  }
+
+  /**
+   * 文件菜单里切换项按「这个文件当前怎么显示」来定，而不是只看 frontmatter：
+   * 带 mindmap: true 的笔记临时切成 Markdown 后，菜单要给出「以思维导图打开」才回得去。
+   * leaf 是标签页 ⋯ 菜单传进来的；文件列表右键没有 leaf，就看当前活动标签页是不是这个文件。
+   */
+  private addFileMenuItems(menu: MenuLike, file: TAbstractFile, leaf?: WorkspaceLeaf): void {
+    if (!(file instanceof TFile) || file.extension !== "md") return;
+    const active = this.app.workspace.getMostRecentLeaf();
+    const shown = leaf ?? ((active?.view as { file?: TFile } | undefined)?.file === file ? active : null);
+    const shownType = shown?.view.getViewType();
+    const isMap = shownType === "markdown" ? false : shownType === VIEW_TYPE_MINDMAP ? true : this.isMindMapFile(file.path);
+    menu.addItem((item) =>
+      item
+        .setTitle(isMap ? t("menu.openAsMarkdown") : t("menu.openAsMindMap"))
+        .setIcon(isMap ? MARKDOWN_ICON : MINDMAP_ICON)
+        .onClick(() => {
+          const target = shown ?? this.app.workspace.getLeaf(false);
+          void (isMap ? this.openAsMarkdown(file, target) : this.openAsMindMap(file, target));
+        }),
+    );
+    // 脑图笔记也给：最想左右对照着看的往往就是它
+    menu.addItem((item) =>
+      item
+        .setTitle(t("command.openPreview"))
+        .setIcon("columns-2")
+        .onClick(() => void this.openSideBySide(file, shown ?? undefined)),
+    );
+  }
+
+  /** 不传文件夹就按 Obsidian 的新建笔记位置设置来 */
+  private async createMindMap(target?: TFolder): Promise<void> {
+    const active = this.app.workspace.getActiveFile();
+    const folder: TFolder = target ?? this.app.fileManager.getNewFileParent(active?.path ?? "");
+    const base = t("newFile.baseName");
+    let name = `${base}.md`;
+    for (let i = 1; this.app.vault.getAbstractFileByPath(joinPath(folder.path, name)); i++) name = `${base} ${i}.md`;
+    const title = name.replace(/\.md$/, "");
+    const content = (await this.templateContent(title)) ?? this.defaultContent(title);
+    const file = await this.app.vault.create(joinPath(folder.path, name), content);
+    const leaf = this.app.workspace.getLeaf(false);
+    await leaf.setViewState({ type: VIEW_TYPE_MINDMAP, state: { file: file.path }, active: true });
+    new Notice(t("notice.created", { path: file.path }));
+  }
+
+  /** 内置的起始内容：跟随界面语言；只影响新建的文件 */
+  private defaultContent(title: string): string {
+    const iconLine = this.settings.listIcon ? `${ICON_KEY}: ${this.settings.listIcon}\n` : "";
+    const topics = [1, 2, 3].map((n) => `## ${t("newFile.topic", { n })}\n`).join("\n");
+    return `---\n${FRONTMATTER_KEY}: true\n${iconLine}---\n\n# ${title}\n\n${topics}`;
+  }
+
+  /** 设置里指定了模板笔记就用它；没设返回 null，设了但找不到也提示一下再用内置内容 */
+  private async templateContent(title: string): Promise<string | null> {
+    const path = this.settings.newFileTemplate.trim();
+    if (!path) return null;
+    const file = this.app.vault.getAbstractFileByPath(path) ?? this.app.metadataCache.getFirstLinkpathDest(path.replace(/\.md$/, ""), "");
+    if (!(file instanceof TFile)) {
+      new Notice(t("notice.templateMissing", { path }));
+      return null;
+    }
+    // obsidian 导出的 moment 在 esModuleInterop 下类型上不可调用，运行时就是 moment 函数本身
+    const text = fillTemplate(await this.app.vault.cachedRead(file), title, (p) => (moment as unknown as () => moment.Moment)().format(p));
+    // 模板里自己写了 icon 就听模板的；mindmap: true 一定要有，不然新建出来不会用脑图打开
+    const values: [string, string][] = [[FRONTMATTER_KEY, "true"]];
+    if (this.settings.listIcon) values.push([ICON_KEY, this.settings.listIcon]);
+    return withFrontmatter(text, values, [ICON_KEY]);
+  }
+
+  // ---------- 代码块 ----------
+
+  /** 代码块重新渲染之间要保住的状态，按「文件路径:起始行」缓存 */
+  private blockStates = new Map<string, BlockState>();
+
+  private registerCodeBlock(): void {
+    const processor = (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+      const wrap = el.createDiv({ cls: "mm-codeblock" });
+      const child = new MarkdownRenderChild(wrap);
+      const info = ctx.getSectionInfo(el);
+      const key = `${ctx.sourcePath}:${info?.lineStart ?? "?"}`;
+      const state: BlockState = this.blockStates.get(key) ?? { view: null, selected: null, editable: false, focused: false, history: new History() };
+      this.blockStates.set(key, state);
+
+      const style = { maxHeadingLevel: this.settings.maxHeadingLevel, indent: indentString(this.settings.indent) };
+      const doc = parseMarkdown(source, { fallbackTitle: "", style });
+      const structure = frontmatterValue(doc.frontmatter, "mindmap-structure");
+      const theme = frontmatterValue(doc.frontmatter, "mindmap-theme");
+      let current = source.replace(/\n$/, "");
+      let lastHeight = 0;
+      let writing = Promise.resolve();
+
+      // 代码块里没被这次编辑碰到的行保持原样，和脑图笔记一样
+      const keepFormat = (next: string) =>
+        preserveFormat(current, next.replace(/\n$/, ""), (text) => serializeMarkdown(parseMarkdown(text, { fallbackTitle: "", style })).replace(/\n$/, ""));
+      const writeBack = (next: string, pushHistory = true) => {
+        next = next.replace(/\n$/, "");
+        if (next === current) return;
+        if (pushHistory) state.history.push(current);
+        const prev = current;
+        current = next;
+        state.selected = canvas.getSelectedPath();
+        state.view = canvas.getViewState();
+        state.focused = wrap.contains(wrap.ownerDocument.activeElement);
+        writing = writing.then(async () => {
+          try {
+            await this.replaceCodeBlock(ctx, el, prev, next);
+          } catch (e) {
+            new Notice(t("notice.writeBackFailed", { error: (e as Error).message }));
+          }
+        });
+      };
+
+      const canvas = new MindMapCanvas(wrap, {
+        structure: isStructure(structure) ? structure : this.settings.defaultStructure,
+        theme: isThemeId(theme) ? theme : this.settings.defaultTheme,
+        edge: edgeFromFrontmatter((k) => frontmatterValue(doc.frontmatter, k)),
+        editable: state.editable,
+        embedded: true,
+        toolbarPosition: this.settings.toolbarPosition,
+        wheelZoom: () => this.settings.wheelAction === "zoom",
+        notePreview: () => this.settings.notePreview,
+        marqueeDrag: () => this.settings.leftDrag === "select",
+        caretAtEnd: () => this.settings.editCaret === "end",
+        dragToFloat: () => this.settings.dragToFloat,
+        notesExpanded: () => this.settings.notesExpanded,
+        notePopoverSize: this.notePopoverSize,
+        host: this.canvasHost(() => ctx.sourcePath, child),
+        onChange: (d) => writeBack(keepFormat(serializeMarkdown(d))),
+        onUndo: () => {
+          const prev = state.history.undo(current);
+          if (prev !== null) writeBack(prev, false);
+        },
+        onRedo: () => {
+          const next = state.history.redo(current);
+          if (next !== null) writeBack(next, false);
+        },
+        onStructureChange: (s) => {
+          const d = canvas.getDoc();
+          if (!d) return;
+          d.frontmatter = setFrontmatterValue(d.frontmatter, "mindmap-structure", s === this.settings.defaultStructure ? null : s);
+          writeBack(keepFormat(serializeMarkdown(d)));
+        },
+        onEdgeChange: (e) => {
+          const d = canvas.getDoc();
+          if (!d) return;
+          d.frontmatter = setFrontmatterValue(d.frontmatter, "mindmap-edge", e.shape ?? null);
+          d.frontmatter = setFrontmatterValue(d.frontmatter, "mindmap-edge-dash", e.dashed === undefined ? null : String(e.dashed));
+          d.frontmatter = setFrontmatterValue(d.frontmatter, "mindmap-edge-corner", e.sharp === undefined ? null : e.sharp ? "sharp" : "round");
+          writeBack(keepFormat(serializeMarkdown(d)));
+        },
+        onLayout: (bounds) => {
+          const h = Math.min(this.settings.codeBlockMaxHeight, Math.max(200, Math.round(bounds.h + 96)));
+          if (h !== lastHeight) {
+            lastHeight = h;
+            // 布局回调可能处在 ResizeObserver 链路里，直接改高度会触发 "loop completed" 警告；推到下一帧
+            wrap.win.requestAnimationFrame(() => {
+              wrap.style.height = `${h}px`;
+            });
+          }
+        },
+        onViewChange: (v) => {
+          state.view = v;
+        },
+        onEditableChange: (e) => {
+          state.editable = e;
+          wrap.classList.toggle("is-editable", e);
+        },
+      });
+      wrap.classList.toggle("is-editable", state.editable);
+      if (state.view) canvas.setViewState(state.view);
+      canvas.setDoc(doc);
+      if (state.selected) canvas.selectPath(state.selected);
+      if (state.focused) {
+        // 写回后 Obsidian 会把整个代码块重新渲染成新元素，旧画布上的焦点跟着没了；
+        // 新元素挂进页面之后再把焦点给它（处理器跑的时候它可能还没进 DOM）
+        state.focused = false;
+        let tries = 0;
+        const refocus = () => {
+          if (wrap.isConnected) canvas.focus();
+          else if (++tries < 10) wrap.win.requestAnimationFrame(refocus);
+        };
+        wrap.win.requestAnimationFrame(refocus);
+      }
+      child.register(() => {
+        state.selected = canvas.getSelectedPath();
+        state.view = canvas.getViewState();
+        if (wrap.contains(wrap.ownerDocument.activeElement)) state.focused = true;
+        canvas.destroy();
+      });
+      ctx.addChild(child);
+    };
+    // gogoga-mindmap 是专属名字，总能用；mindmap 和 Markmind 撞名，设置里可以让给它（改了重新加载插件生效）
+    this.registerMarkdownCodeBlockProcessor("gogoga-mindmap", processor);
+    if (this.settings.claimMindmapBlock) this.registerMarkdownCodeBlockProcessor("mindmap", processor);
+  }
+
+  /** 把新的块内容写回宿主笔记：文件在编辑器里打开就走编辑器，否则直接改文件 */
+  private async replaceCodeBlock(ctx: MarkdownPostProcessorContext, el: HTMLElement, expectedInner: string, nextInner: string): Promise<void> {
+    const info = ctx.getSectionInfo(el);
+    const hint = info ? { lineStart: info.lineStart, lineEnd: info.lineEnd } : null;
+    // 白板的文本卡片没有宿主笔记（sourcePath 是空的），块在卡片自己的文字里
+    const card = this.canvasTextCard(el);
+    if (card) {
+      const range = locateBlock(card.node.text, hint, expectedInner);
+      if (!range) throw new Error(t("error.blockNotFound"));
+      card.node.setText(replaceBlock(card.node.text, range, nextInner));
+      card.canvas.requestSave();
+      return;
+    }
+    const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
+    if (!(file instanceof TFile)) throw new Error(t("error.fileNotFound", { path: ctx.sourcePath }));
+
+    const views = this.app.workspace
+      .getLeavesOfType("markdown")
+      .map((l) => l.view as MarkdownView)
+      .filter((v) => v.file?.path === file.path);
+    const editorView = views.find((v) => v.containerEl.contains(el)) ?? views[0];
+    if (editorView && editorView.getMode() === "source") {
+      const editor = editorView.editor;
+      const range = locateBlock(editor.getValue(), hint, expectedInner);
+      if (!range) throw new Error(t("error.blockNotFound"));
+      const body = nextInner === "" ? "" : `${nextInner}\n`;
+      editor.replaceRange(body, { line: range.lineStart + 1, ch: 0 }, { line: range.lineEnd, ch: 0 });
+      return;
+    }
+    let failed = false;
+    await this.app.vault.process(file, (data) => {
+      const range = locateBlock(data, hint, expectedInner);
+      if (!range) {
+        failed = true;
+        return data;
+      }
+      return replaceBlock(data, range, nextInner);
+    });
+    if (failed) throw new Error(t("error.blockNotFound"));
+  }
+
+  /**
+   * 代码块所在的白板文本卡片。白板没有公开 API：从打开着的白板视图里找 nodeEl 包含它、带 text 的卡片；
+   * 文件卡片（嵌入的笔记）有自己的宿主笔记，不在这里处理
+   */
+  private canvasTextCard(el: HTMLElement): { canvas: { requestSave(): void }; node: { text: string; setText(text: string): void } } | null {
+    if (!el.closest(".canvas-node")) return null;
+    type CanvasNode = { nodeEl?: HTMLElement; text?: unknown; setText?: (text: string) => void };
+    type Canvas = { nodes?: Map<string, CanvasNode>; requestSave?: () => void };
+    for (const leaf of this.app.workspace.getLeavesOfType("canvas")) {
+      const canvas = (leaf.view as unknown as { canvas?: Canvas }).canvas;
+      if (!canvas?.nodes || typeof canvas.requestSave !== "function") continue;
+      for (const node of canvas.nodes.values()) {
+        if (!node.nodeEl?.contains(el)) continue;
+        if (typeof node.text !== "string" || typeof node.setText !== "function") return null;
+        const setText = node.setText.bind(node);
+        const requestSave = canvas.requestSave.bind(canvas);
+        return {
+          canvas: { requestSave },
+          node: {
+            get text() {
+              return node.text as string;
+            },
+            setText,
+          },
+        };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 按键是否命中用户给本插件命令设的快捷键。读的是 Obsidian 内部的 hotkeyManager（没有公开 API），
+   * 读不到就当没有，画布按原来的方式处理
+   */
+  /** 各处画布共用的备注弹窗尺寸存取 */
+  readonly notePopoverSize = {
+    get: () => this.settings.notePopoverSize,
+    set: (size: { w: number; h: number }) => {
+      this.settings.notePopoverSize = size;
+      void this.saveSettings();
+    },
+  };
+
+  isOwnHotkey(ev: KeyboardEvent): boolean {
+    return this.ownHotkeyCommand(ev) !== null;
+  }
+
+  /** 按键命中的本插件命令 id（用户在快捷键设置里绑的），没有返回 null */
+  ownHotkeyCommand(ev: KeyboardEvent): string | null {
+    const hm = (this.app as unknown as { hotkeyManager?: { bakedIds?: string[]; bakedHotkeys?: { modifiers: string; key: string }[] } }).hotkeyManager;
+    const ids = hm?.bakedIds;
+    const keys = hm?.bakedHotkeys;
+    if (!ids || !keys) return null;
+    const mods = [ev.altKey && "Alt", ev.ctrlKey && "Ctrl", ev.metaKey && "Meta", ev.shiftKey && "Shift"].filter(Boolean).join(",");
+    const key = ev.key.toLowerCase();
+    // Alt 组合在 macOS 上 ev.key 是变形字符，再按物理键比一次
+    const code = ev.code.replace(/^(Key|Digit)/, "").toLowerCase();
+    const prefix = `${this.manifest.id}:`;
+    const i = ids.findIndex((id, i) => {
+      const hk = keys[i];
+      if (!id.startsWith(prefix) || !hk || hk.modifiers !== mods) return false;
+      const k = hk.key.toLowerCase();
+      return k === key || k === code;
+    });
+    return i < 0 ? null : ids[i];
+  }
+
+  /**
+   * 链接指向一个已经在别的标签页里打开的 PDF：在那个标签页里跳到对应位置（页码、选区高亮），
+   * 不把脑图所在的标签页换成 PDF。左脑图右 PDF 边读边记时，点节点就在右边定位
+   */
+  private revealInOpenPdf(href: string, sourcePath: string): boolean {
+    const hash = href.indexOf("#");
+    const path = hash < 0 ? href : href.slice(0, hash);
+    const file = this.app.metadataCache.getFirstLinkpathDest(path, sourcePath);
+    if (!file || file.extension !== "pdf") return false;
+    let target: WorkspaceLeaf | null = null;
+    this.app.workspace.iterateAllLeaves((l) => {
+      if (!target && l.view.getViewType() === "pdf" && (l.view as unknown as { file?: TFile }).file?.path === file.path) target = l;
+    });
+    if (!target) return false;
+    const leaf: WorkspaceLeaf = target;
+    void leaf.openFile(file, { eState: { subpath: hash < 0 ? "" : href.slice(hash) } }).then(() => {
+      void this.app.workspace.revealLeaf(leaf);
+      // Obsidian 自己的 PDF 阅读器在文件已经打开时只滚动、不画选区高亮（高亮要等页面重新渲染）；
+      // 内部接口在就补画一次，没有就算了。PDF++ 自己会画
+      type Child = { subpathHighlight?: { type: string; page: number; range: unknown } | null; highlightText?: (page: number, range: unknown) => void };
+      const child = (leaf.view as unknown as { viewer?: { child?: Child } }).viewer?.child;
+      const h = child?.subpathHighlight;
+      if (h?.type === "text" && typeof child?.highlightText === "function") {
+        try {
+          child.highlightText(h.page, h.range);
+        } catch {
+          // 内部接口变了：只滚动到位置
+        }
+      }
+    });
+    return true;
+  }
+
+  canvasHost(sourcePath: () => string, component: Component, hoverParent?: HoverParent): CanvasHost {
+    return {
+      claimKeys: (el, onKey) => {
+        // Obsidian 的热键在 window 捕获阶段就处理了，画布自己的 keydown 来不及拦：
+        // F2 默认是「重命名文件」，在笔记里嵌入的图上按 F2 会跑去改文件名。
+        // 焦点在图里时压一层 Scope 先截下来交给画布，返回 false 让 Obsidian 不再往下处理
+        const scope = new Scope(this.app.scope);
+        scope.register([], "F2", (ev) => {
+          onKey(ev);
+          return false;
+        });
+        let pushed = false;
+        const pop = () => {
+          if (!pushed) return;
+          this.app.keymap.popScope(scope);
+          pushed = false;
+        };
+        const onIn = () => {
+          if (pushed) return;
+          this.app.keymap.pushScope(scope);
+          pushed = true;
+        };
+        const onOut = (ev: FocusEvent) => {
+          if (!el.contains(ev.relatedTarget as Node | null)) pop();
+        };
+        el.addEventListener("focusin", onIn);
+        el.addEventListener("focusout", onOut);
+        return () => {
+          el.removeEventListener("focusin", onIn);
+          el.removeEventListener("focusout", onOut);
+          pop();
+        };
+      },
+      notePreviewScope: () => {
+        const scope = new Component();
+        scope.load();
+        let child: Component | null = null;
+        return {
+          render: (el, markdown) => {
+            if (child) scope.removeChild(child);
+            child = scope.addChild(new Component());
+            el.empty();
+            void MarkdownRenderer.render(this.app, markdown, el, sourcePath(), child);
+          },
+          dispose: () => scope.unload(),
+        };
+      },
+      renderNote: (el, markdown) => {
+        void MarkdownRenderer.render(this.app, markdown, el, sourcePath(), component).then(() => {
+          // 备注里的代码块：MarkdownRenderer 不一定跑高亮，补一次
+          const prism = (window as unknown as { Prism?: { highlightAllUnder?: (el: Element) => void } }).Prism;
+          if (el.querySelector("pre code[class*=language-]")) prism?.highlightAllUnder?.(el);
+        });
+      },
+      renderMath: (tex) => {
+        if (!this.mathReady) return null;
+        try {
+          return renderMath(tex, false);
+        } catch {
+          return null;
+        }
+      },
+      afterRender: () => {
+        if (this.mathReady) void finishRenderMath();
+      },
+      renderPdfCrop: (link, el, onImage) => {
+        // 截区是 PDF++ 的写法，Obsidian 自己只会显示整页，没装就退回成链接
+        const plugins = (this.app as unknown as { plugins?: { enabledPlugins?: Set<string> } }).plugins;
+        if (!plugins?.enabledPlugins?.has("pdf-plus")) return false;
+        let done = false;
+        const settle = (img: HTMLImageElement) => {
+          if (done) return;
+          done = true;
+          observer.disconnect();
+          onImage(img);
+        };
+        // PDF++ 先放一个占位、渲染好了才换成 <img>（data URL），等图片真正加载完再交回去量尺寸
+        const observer = new MutationObserver(() => {
+          const img = el.querySelector("img");
+          if (!img) return;
+          if (img.complete && img.naturalWidth) settle(img);
+          else img.addEventListener("load", () => settle(img), { once: true });
+        });
+        observer.observe(el, { childList: true, subtree: true });
+        component.register(() => observer.disconnect());
+        void MarkdownRenderer.render(this.app, `![[${link}]]`, el, sourcePath(), component);
+        return true;
+      },
+      resolveImage: (link) => {
+        if (/^(https?:|data:|app:|blob:)/.test(link)) return link;
+        const file = this.app.metadataCache.getFirstLinkpathDest(link.split("#")[0], sourcePath());
+        return file ? this.app.vault.getResourcePath(file) : null;
+      },
+      showMenu: (entries, ev, onClose) => {
+        const menu = new Menu();
+        if (onClose) menu.onHide(onClose);
+        // 二级菜单用的是 Obsidian 自己也在用的 MenuItem.setSubmenu()（不在公开 API 里）；
+        // 没有这个方法时把子项平铺开，功能一样
+        let canSub = false;
+        // 用一个不显示的菜单探一下 MenuItem 有没有 setSubmenu
+        new Menu().addItem((item) => {
+          canSub = typeof (item as unknown as { setSubmenu?: unknown }).setSubmenu === "function";
+        });
+        const fill = (m: Menu, list: MenuEntry[]) => {
+          for (const e of list) {
+            if (e.separator) {
+              m.addSeparator();
+              continue;
+            }
+            m.addItem((item) => {
+              item.setTitle(e.title ?? "");
+              if (e.icon) item.setIcon(e.icon);
+              if (e.checked) item.setChecked(true);
+              item.setDisabled(!!e.disabled);
+              if (e.submenu) {
+                const sub = (item as unknown as { setSubmenu: () => Menu }).setSubmenu();
+                fill(sub, e.submenu);
+              } else {
+                item.onClick(() => e.run?.());
+              }
+            });
+          }
+        };
+        fill(menu, canSub ? entries : flattenMenu(entries));
+        menu.showAtMouseEvent(ev);
+      },
+      openTag: (tag) => {
+        const search = (this.app as unknown as { internalPlugins: { getPluginById(id: string): { instance?: { openGlobalSearch?: (q: string) => void } } | null } }).internalPlugins.getPluginById("global-search");
+        search?.instance?.openGlobalSearch?.(`tag:${tag}`);
+      },
+      getDraggedFiles: () => {
+        const d = (this.app as unknown as { dragManager?: { draggable?: { type?: string; file?: TFile; files?: TFile[] } | null } }).dragManager?.draggable;
+        if (!d) return null;
+        const files = d.type === "file" && d.file ? [d.file] : d.type === "files" && d.files ? d.files : [];
+        return files
+          .filter((f): f is TFile => f instanceof TFile)
+          .map((f) => ({
+            name: f.name,
+            basename: f.basename,
+            linktext: this.app.metadataCache.fileToLinktext(f, sourcePath()),
+            isImage: IMAGE_EXTS.has(f.extension.toLowerCase()),
+          }));
+      },
+      saveBinary: async (name, data) => {
+        const path = await this.app.fileManager.getAvailablePathForAttachment(name, sourcePath());
+        const file = await this.app.vault.createBinary(path, data);
+        return this.app.metadataCache.fileToLinktext(file, sourcePath());
+      },
+      fileBasename: () => {
+        const p = sourcePath();
+        const f = this.app.vault.getAbstractFileByPath(p);
+        return f instanceof TFile ? f.basename : p.replace(/\.md$/, "").split("/").pop() ?? p;
+      },
+      notice: (m) => new Notice(m),
+      setTooltip: (el, text, placement) => setTooltip(el, text, { placement }),
+      openLink: (href, internal, ev) => {
+        const newTab = ev.metaKey || ev.ctrlKey;
+        if (internal && !newTab && this.revealInOpenPdf(href, sourcePath())) return;
+        if (internal) void this.app.workspace.openLinkText(href, sourcePath(), newTab);
+        else window.open(href, "_blank");
+      },
+      hoverLink: hoverParent
+        ? (event, linktext, targetEl) => {
+            this.app.workspace.trigger("hover-link", { event, source: HOVER_SOURCE, hoverParent, targetEl, linktext, sourcePath: sourcePath() });
+          }
+        : undefined,
+      listLinkTargets: () =>
+        this.app.vault
+          .getFiles()
+          .sort((a, b) => b.stat.mtime - a.stat.mtime)
+          .map((f) => ({
+            name: f.extension === "md" ? f.basename : f.name,
+            folder: f.parent && f.parent.path !== "/" ? f.parent.path : "",
+            linktext: this.app.metadataCache.fileToLinktext(f, sourcePath(), true),
+            isNote: f.extension === "md",
+          })),
+      pickNote: (suggested) =>
+        new Promise<string | null>((resolve) => {
+          new NotePickerModal(this.app, suggested, (item) => {
+            if (!item) return resolve(null);
+            if (item.kind === "file") return resolve(item.file.basename);
+            void this.createLinkedNote(item.name, sourcePath()).then((f) => resolve(f ? f.basename : null));
+          }).open();
+        }),
+    };
+  }
+
+  /** 从节点新建笔记：放在新文件默认位置，已存在就直接复用，并在右侧分栏打开 */
+  private async createLinkedNote(name: string, sourcePath: string): Promise<TFile | null> {
+    const folder = this.app.fileManager.getNewFileParent(sourcePath);
+    const path = joinPath(folder.path, `${name}.md`);
+    let file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      try {
+        file = await this.app.vault.create(path, "");
+      } catch (e) {
+        new Notice(t("notice.createNoteFailed", { error: (e as Error).message }));
+        return null;
+      }
+    }
+    if (!(file instanceof TFile)) return null;
+    const origin = this.app.workspace.getActiveViewOfType(ItemView)?.leaf;
+    const leaf = this.app.workspace.getLeaf("split", "vertical");
+    await leaf.openFile(file, { active: false });
+    // 新笔记在右侧打开，焦点留在脑图上，方便继续加节点
+    if (origin) this.app.workspace.setActiveLeaf(origin, { focus: true });
+    return file;
+  }
+}
+
+interface BlockState {
+  view: { tx: number; ty: number; k: number } | null;
+  selected: string | null;
+  editable: boolean;
+  /** 重新渲染前画布有焦点：新画布接着拿焦点，键盘操作不断 */
+  focused: boolean;
+  history: History;
+}
+
+function joinPath(folder: string, name: string): string {
+  return folder && folder !== "/" ? `${folder}/${name}` : name;
+}

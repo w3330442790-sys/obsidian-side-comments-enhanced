@@ -1,0 +1,171 @@
+import { FileView, Notice, TFile, WorkspaceLeaf } from "obsidian";
+import { MindMapCanvas } from "./canvas";
+import { MARKDOWN_ICON, MINDMAP_ICON } from "./icon";
+import { t } from "./i18n";
+import { indentString } from "./settings";
+import { describeLost, imageExt, parseXmind, sheetImageUrls, XmindSheet, xmindSheetToDoc, xmindSheetToMarkdown } from "./xmind";
+import { VIEW_TYPE_MINDMAP } from "./view";
+import type MindMapPlugin from "./main";
+import { xmindSheetToMindDoc } from '../../../src/fusion/xmind';
+import { serialize } from '../../../src/core/doc';
+import {parseMarkdown} from './markdown';
+
+export const VIEW_TYPE_XMIND = "taube-markdown-tool-xmind";
+
+/** 直接打开 vault 里的 .xmind：只读渲染，可一键转成 Markdown 笔记 */
+export class XmindView extends FileView {
+  private canvas: MindMapCanvas | null = null;
+  private sheets: XmindSheet[] = [];
+  private current = 0;
+  private loadEpoch=0;
+  private loadedFile:TFile|null=null;
+  private sheetBar: HTMLElement | null = null;
+  private lostBar: HTMLElement | null = null;
+  /** 当前工作表图片的 blob: 地址，换工作表、关视图时释放 */
+  private releaseImages: (() => void) | null = null;
+
+  constructor(leaf: WorkspaceLeaf, private plugin: MindMapPlugin) {
+    super(leaf);
+    this.navigation = true;
+  }
+
+  getViewType(): string {
+    return VIEW_TYPE_XMIND;
+  }
+
+  getDisplayText(): string {
+    return this.file?.basename ?? "XMind";
+  }
+
+  getIcon(): string {
+    return MINDMAP_ICON;
+  }
+
+  canAcceptExtension(extension: string): boolean {
+    return extension === "xmind";
+  }
+
+  async onOpen(): Promise<void> {
+    this.contentEl.addClass("mm-view-content");
+    this.addAction(MARKDOWN_ICON, t("xmind.convert"), () => void this.convert());
+    this.addAction('brain-circuit', '转换当前工作表为完整格式脑图 (.wmind)', () => void this.convertWmind());
+    const host = this.contentEl.createDiv();
+    this.canvas = new MindMapCanvas(host, {
+      structure: this.plugin.settings.defaultStructure,
+      theme: this.plugin.settings.defaultTheme,
+      editable: false,
+      host: this.plugin.canvasHost(() => this.file?.path ?? "", this),
+    });
+  }
+
+  async onClose(): Promise<void> {
+    this.loadEpoch++;
+    this.loadedFile=null;
+    await super.onClose();
+    this.canvas?.destroy();
+    this.canvas = null;
+    this.releaseImages?.();
+    this.releaseImages = null;
+  }
+
+  async onLoadFile(file: TFile): Promise<void> {
+    const epoch=++this.loadEpoch;
+    this.loadedFile=null;this.sheets=[];this.current=0;
+    this.renderSheet();
+    this.canvas?.setDoc(parseMarkdown('# 正在读取 XMind…',{fallbackTitle:'XMind'}));
+    try {
+      const sheets = await parseXmind(await this.app.vault.readBinary(file));
+      if(epoch!==this.loadEpoch||this.file!==file)return;
+      this.sheets=sheets;
+      this.loadedFile=file;
+    } catch (e) {
+      if(epoch!==this.loadEpoch||this.file!==file)return;
+      this.sheets = [];
+      this.canvas?.setDoc(parseMarkdown('# 无法读取 XMind 文件',{fallbackTitle:'XMind'}));
+      new Notice(t("xmind.readFailed", { name: file.name, error: (e as Error).message }));
+    }
+    this.current = 0;
+    this.renderSheet();
+  }
+
+  private docStyle() {
+    return { maxHeadingLevel: this.plugin.settings.maxHeadingLevel, indent: indentString(this.plugin.settings.indent) };
+  }
+
+  private renderSheet(): void {
+    if (!this.canvas) return;
+    this.sheetBar?.remove();
+    this.sheetBar = null;
+    this.lostBar?.remove();
+    this.lostBar = null;
+    const sheet = this.sheets[this.current];
+    const prev = this.releaseImages;
+    this.releaseImages = null;
+    if (!sheet) {
+      prev?.();
+      return;
+    }
+    const urls = sheetImageUrls(sheet);
+    this.releaseImages = urls.revoke;
+    this.canvas.setDoc(xmindSheetToDoc(sheet, this.docStyle(), urls.link));
+    prev?.();
+    const lost = describeLost(sheet.lost);
+    if (lost) {
+      this.lostBar = this.canvas.el.createDiv({ cls: "mm-xmind-lost", text: lost });
+      this.lostBar.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    }
+    if (this.sheets.length > 1) {
+      const bar = this.canvas.el.createDiv({ cls: "mm-sheets" });
+      bar.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+      this.sheets.forEach((s, i) => {
+        const b = bar.createEl("button", { text: s.title, cls: i === this.current ? "is-active" : "" });
+        b.addEventListener("click", () => {
+          this.current = i;
+          this.renderSheet();
+        });
+      });
+      this.sheetBar = bar;
+    }
+  }
+
+  private async convert(): Promise<void> {
+    const file = this.file;
+    const sheet = this.sheets[this.current];
+    if (!file || !sheet || this.loadedFile!==file) return;
+    const folder = file.parent?.path ?? "";
+    const base = this.sheets.length > 1 ? `${file.basename} - ${sheet.title}` : file.basename;
+    let name = `${base}.md`;
+    for (let i = 1; this.app.vault.getAbstractFileByPath(folder && folder !== "/" ? `${folder}/${name}` : name); i++) {
+      name = `${base} ${i}.md`;
+    }
+    const path = folder && folder !== "/" ? `${folder}/${name}` : name;
+    // 图片按 Obsidian 的附件位置设置存成附件，节点里写 ![[附件|宽度]]
+    const links = new Map<string, string>();
+    let n = 0;
+    for (const [src, data] of sheet.images ?? []) {
+      const attachment = await this.app.fileManager.getAvailablePathForAttachment(`${name.replace(/\.md$/, "")} ${++n}.${imageExt(src)}`, path);
+      const saved = await this.app.vault.createBinary(attachment, data.slice().buffer);
+      links.set(src, this.app.metadataCache.fileToLinktext(saved, path));
+    }
+    let md = xmindSheetToMarkdown(sheet, this.docStyle(), (src) => links.get(src) ?? null);
+    const icon = this.plugin.settings.listIcon;
+    if (icon) md = md.replace(/^---\nmindmap: true\n/, `---\nmindmap: true\nicon: ${icon}\n`);
+    const created = await this.app.vault.create(path, md);
+    await this.leaf.setViewState({ type: VIEW_TYPE_MINDMAP, state: { file: created.path }, active: true });
+    const lost = describeLost(sheet.lost);
+    new Notice(t("xmind.converted", { path: created.path }) + (lost ? `\n${lost}` : ""), lost ? 8000 : undefined);
+  }
+  private async convertWmind():Promise<void>{
+    const file=this.file,sheet=this.sheets[this.current];if(!file||!sheet||this.loadedFile!==file)return;
+    try{
+      const imported=xmindSheetToMindDoc(sheet);
+      const stem=(this.sheets.length>1?`${file.basename} - ${sheet.title}`:file.basename).replace(/[\\/:*?"<>|]/g,' ');
+      const folder=file.parent?.path==='/'?'':file.parent?.path??'';
+      let path=(folder?folder+'/':'')+stem+'.wmind';
+      for(let n=2;this.app.vault.getAbstractFileByPath(path);n++)path=(folder?folder+'/':'')+stem+' '+n+'.wmind';
+      const created=await this.app.vault.create(path,serialize(imported.doc));
+      await this.app.workspace.getLeaf(true).openFile(created);
+      new Notice(`已转换：${path}${imported.warnings.length?'\n'+imported.warnings.join('\n'):''}`);
+    }catch(error){new Notice(`转换失败：${(error as Error).message}`);}
+  }
+}

@@ -1,22 +1,30 @@
 {
   "name": "taube-markdown-tool",
-  "version": "1.6.2",
-  "description": "Markdown annotations, block drag and a text toolbar; defers mind maps to personal-mindmap.",
+  "version": "2.0.0",
+  "description": "Markdown annotations, block editing, a text toolbar and a full fused mind-map canvas (.wmind/.xmind).",
   "main": "main.js",
   "scripts": {
-    "dev": "node esbuild.config.mjs",
+    "dev": "node scripts/build-styles.mjs && node esbuild.config.mjs",
     "lint": "eslint src",
-    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/verify-bundle.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node scripts/build-styles.mjs && node esbuild.config.mjs production && node scripts/verify-bundle.mjs",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "test": "node --test tests/enhancements.test.cjs tests/mindmap.test.cjs tests/personal-mindmap-compat.test.cjs tests/selection-tools.test.cjs tests/annotation-anchor.test.cjs tests/legacy-migration.test.cjs tests/block-drag.test.cjs tests/markdown-toolbar.test.cjs tests/history-session.test.cjs",
-    "test:ui": "node tests/ui-test.cjs && node tests/selection-ui-test.cjs && node tests/mindmap-ui.cjs && node tests/drag-ui.cjs && node tests/toolbar-ui.cjs"
+    "test": "node --test tests/enhancements.test.cjs tests/selection-tools.test.cjs tests/annotation-anchor.test.cjs tests/legacy-migration.test.cjs tests/block-drag.test.cjs tests/markdown-toolbar.test.cjs && node --test --import tsx tests/mindmap/clipboard.test.ts tests/mindmap/core.test.ts tests/mindmap/emoji-markers.test.ts tests/mindmap/fusion-format.test.ts tests/mindmap/fusion-ops.test.ts tests/mindmap/fusion-theme.test.ts tests/mindmap/inline-format.test.ts tests/mindmap/integration.test.ts tests/mindmap/lifetime.test.ts tests/mindmap/note-modal.test.ts tests/mindmap/obsidian-host.test.ts tests/mindmap/obsidian-plugin.test.ts tests/mindmap/obsidian-xmind.test.ts tests/mindmap/persistence.test.ts tests/mindmap/rich-export.test.ts tests/mindmap/rich.test.ts tests/mindmap/shape.test.ts tests/mindmap/summary-branch.test.ts",
+    "test:ui": "node tests/ui-test.cjs && node tests/selection-ui-test.cjs && node tests/drag-ui.cjs && node tests/toolbar-ui.cjs && node tests/mindmap-ui.cjs"
   },
-  "keywords": [],
+  "keywords": [
+    "obsidian",
+    "annotations",
+    "mindmap",
+    "wmind",
+    "xmind"
+  ],
   "author": "taube",
   "license": "GPL-3.0-only",
   "devDependencies": {
     "@eslint/js": "^9.30.1",
     "@types/node": "^16.11.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
     "esbuild": "^0.27.1",
@@ -25,6 +33,7 @@
     "obsidian": "latest",
     "playwright": "1.58.2",
     "tslib": "2.4.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.35.1"
   },
@@ -32,6 +41,9 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.3",
     "docx": "^8.5.0",
-    "lucide": "^1.16.0"
+    "lucide": "^1.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "roughjs": "^4.6.6"
   }
 }

@@ -1,4 +1,4 @@
-import SideNote from '../src/main';
+import SideNote from '../artifacts/main-selection-test';
 import { CommentManager } from '../src/commentManager';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
@@ -14,7 +14,7 @@ w.selectionSetup = (auto = true) => {
     const leaf = { view: markdown };
     const app: any = { workspace: { getActiveFile: () => note, iterateAllLeaves: (fn: any) => fn(leaf), getLeavesOfType: () => [] } };
     const plugin: any = new SideNote(app, { id: 'side-comments-origin' });
-    plugin.settings = { enableSelectionToolbar: auto, highlightColor: '#ffc800', highlightOpacity: .2 };
+    plugin.toolSettings = { enableSelectionToolbar: auto, highlightColor: '#ffc800', highlightOpacity: .2 };
     plugin.comments = [{ filePath: note.path, selectedText: '重点原文', comment: '保留批注正文', timestamp: 123, selectedTextHash: 'hash', absoluteFrom: 0, absoluteTo: 4, startLine: 0, startChar: 0, endLine: 0, endChar: 4, markType: 'highlight', color: '#ffc800' }];
     plugin.commentManager = new CommentManager(plugin.comments);
     plugin.editComment = async (timestamp: number, body: string, color: string, type: any) => {

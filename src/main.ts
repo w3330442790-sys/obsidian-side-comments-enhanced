@@ -1,8 +1,7 @@
-import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateResult, Plugin, Setting, PluginSettingTab, MarkdownRenderer, setIcon, Component, normalizePath, Platform, Editor } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateResult, Setting, PluginSettingTab, MarkdownRenderer, setIcon, Component, normalizePath, Platform, Editor } from "obsidian";
 import { Comment, CommentManager } from "./commentManager";
-import { registerMarkdownTool } from './mindmap/view';
-import { personalMindmapProvidesView } from './mindmap/compat';
-import { registerLegacyMindmapBridge } from './mindmap/legacy-bridge';
+import MindmapPluginBase from "../vendor/personal-mindmap/src/obsidian/main";
+import { registerMindmapBridges } from './mindmap-bridge';
 import { Modal } from 'obsidian';
 import { filterComments, navigation, rebindComment, restoreComment, draftKey, DraftStore, Draft, Preferences, CommentFilter } from './enhancements';
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
@@ -362,14 +361,14 @@ class SideNoteView extends ItemView {
         exportBtn.onclick = async () => { await this.exportCommentsToMarkdown(); };
 
         const sortBtn = toolbar.createEl("button", { cls: "clickable-icon" });
-        sortBtn.setAttribute("aria-label", this.plugin.settings.commentSortOrder === "position" ? "改为按创建时间排序" : "改为按正文位置排序");
-        setIcon(sortBtn, this.plugin.settings.commentSortOrder === "position" ? "arrow-down-narrow-wide" : "clock");
+        sortBtn.setAttribute("aria-label", this.plugin.toolSettings.commentSortOrder === "position" ? "改为按创建时间排序" : "改为按正文位置排序");
+        setIcon(sortBtn, this.plugin.toolSettings.commentSortOrder === "position" ? "arrow-down-narrow-wide" : "clock");
         
         sortBtn.onclick = async () => {
-            this.plugin.settings.commentSortOrder = this.plugin.settings.commentSortOrder === "position" ? "timestamp" : "position";
-            await this.plugin.saveData();
-            setIcon(sortBtn, this.plugin.settings.commentSortOrder === "position" ? "arrow-down-narrow-wide" : "clock");
-            sortBtn.setAttribute("aria-label", this.plugin.settings.commentSortOrder === "position" ? "改为按创建时间排序" : "改为按正文位置排序");
+            this.plugin.toolSettings.commentSortOrder = this.plugin.toolSettings.commentSortOrder === "position" ? "timestamp" : "position";
+            await this.plugin.saveToolData();
+            setIcon(sortBtn, this.plugin.toolSettings.commentSortOrder === "position" ? "arrow-down-narrow-wide" : "clock");
+            sortBtn.setAttribute("aria-label", this.plugin.toolSettings.commentSortOrder === "position" ? "改为按创建时间排序" : "改为按正文位置排序");
             await this.renderCommentsList(commentsContainer);
         };
 
@@ -422,8 +421,8 @@ class SideNoteView extends ItemView {
         const colors = controls.createEl('select', { attr: { 'aria-label': '筛选标记颜色' } });
         colors.createEl('option', { text: '全部颜色', value: '' });
         const values = new Set(COLOR_PRESETS.map(c => c.value.toLowerCase()));
-        values.add(this.plugin.settings.highlightColor.toLowerCase());
-        this.plugin.commentManager.getCommentsForFile(this.file?.path || '').forEach(c => values.add((c.color || this.plugin.settings.highlightColor).toLowerCase()));
+        values.add(this.plugin.toolSettings.highlightColor.toLowerCase());
+        this.plugin.commentManager.getCommentsForFile(this.file?.path || '').forEach(c => values.add((c.color || this.plugin.toolSettings.highlightColor).toLowerCase()));
         if (filter.color) values.add(filter.color.toLowerCase());
         values.forEach(value => colors.createEl('option', { value, text: COLOR_PRESETS.find(c => c.value === value)?.name || (value === '#ffc800' ? '默认黄色 #ffc800' : value) }));
         colors.value = filter.color || '';
@@ -557,7 +556,7 @@ class SideNoteView extends ItemView {
             return;
         }
 
-        let commentsForFile = filterComments(this.plugin.commentManager.getCommentsForFile(this.file.path), this.plugin.preferences.filter, this.plugin.settings.highlightColor);
+        let commentsForFile = filterComments(this.plugin.commentManager.getCommentsForFile(this.file.path), this.plugin.preferences.filter, this.plugin.toolSettings.highlightColor);
 
         if (this.searchQuery) {
             commentsForFile = commentsForFile.filter(c => 
@@ -566,7 +565,7 @@ class SideNoteView extends ItemView {
             );
         }
 
-        if (this.plugin.settings.commentSortOrder === "position") {
+        if (this.plugin.toolSettings.commentSortOrder === "position") {
             commentsForFile.sort((a, b) => {
                 if (a.startLine === b.startLine) return a.startChar - b.startChar;
                 return a.startLine - b.startLine;
@@ -600,9 +599,9 @@ class SideNoteView extends ItemView {
                     commentEl.addClass("active");
                 }
 
-                const commentColor = comment.color || this.plugin.settings.highlightColor || DEFAULT_SETTINGS.highlightColor;
+                const commentColor = comment.color || this.plugin.toolSettings.highlightColor || DEFAULT_SETTINGS.highlightColor;
                 const rgb = this.plugin.hexToRgb(commentColor);
-                const opacity = this.plugin.settings.highlightOpacity;
+                const opacity = this.plugin.toolSettings.highlightOpacity;
                 commentEl.style.setProperty('--sidenote-highlight-color', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`);
                 commentEl.style.setProperty('--sidenote-highlight-border', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.4, 1)})`);
                 commentEl.style.setProperty('--interactive-accent', commentColor);
@@ -870,14 +869,14 @@ class CommentModal {
             this.comment = options.comment;
             this.selectedText = this.comment.selectedText || "";
             this.filePath = this.comment.filePath;
-            this.colorInput = this.comment.color || plugin.settings.highlightColor || "#FFC800";
+            this.colorInput = this.comment.color || plugin.toolSettings.highlightColor || "#FFC800";
             this.markType = this.comment.markType || "highlight";
             this.commentText = this.comment.comment || "";
         } else {
             this.comment = null;
             this.selectedText = options.selectedText || "";
             this.filePath = options.filePath || "";
-            this.colorInput = options.initialColor || plugin.settings.highlightColor || "#FFC800";
+            this.colorInput = options.initialColor || plugin.toolSettings.highlightColor || "#FFC800";
             this.markType = options.initialMarkType || "highlight";
             this.commentText = "";
             this.onSubmitAdd = options.onSubmitAdd;
@@ -1301,13 +1300,13 @@ class CommentModal {
                 } else {
                     availablePath = await this.createNewImage(arrayBuffer, file.name);
                     this.plugin.imageHashes[binaryHash] = availablePath;
-                    await this.plugin.saveData();
+                    await this.plugin.saveToolData();
                 }
             } else {
                 availablePath = await this.createNewImage(arrayBuffer, file.name);
                 if (!this.plugin.imageHashes) this.plugin.imageHashes = {};
                 this.plugin.imageHashes[binaryHash] = availablePath;
-                await this.plugin.saveData();
+                await this.plugin.saveToolData();
             }
 
             const savedFile = this.app.vault.getAbstractFileByPath(availablePath);
@@ -1330,7 +1329,7 @@ class CommentModal {
     }
 
     async createNewImage(arrayBuffer: ArrayBuffer, originalName: string): Promise<string> {
-        const folderSetting = this.plugin.settings.attachmentFolder.trim() || "side-note-attachments";
+        const folderSetting = this.plugin.toolSettings.attachmentFolder.trim() || "side-note-attachments";
         const folderPath = normalizePath(folderSetting);
         const folder = this.app.vault.getAbstractFileByPath(folderPath);
         if (!folder) await this.app.vault.createFolder(folderPath);
@@ -1368,10 +1367,10 @@ class SideNoteSettingTab extends PluginSettingTab {
                 render: (setting: Setting) => setting.addDropdown((dropdown) => dropdown
                     .addOption("timestamp", "按创建时间")
                     .addOption("position", "按正文位置")
-                    .setValue(this.plugin.settings.commentSortOrder)
+                    .setValue(this.plugin.toolSettings.commentSortOrder)
                     .onChange(async (value: "timestamp" | "position") => {
-                        this.plugin.settings.commentSortOrder = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.commentSortOrder = value;
+                        await this.plugin.saveToolData();
                         this.plugin.refreshViews();
                     }))
             },
@@ -1379,10 +1378,10 @@ class SideNoteSettingTab extends PluginSettingTab {
                 name: "显示批注标记",
                 desc: "在编辑视图和阅读视图中显示批注的视觉标记。",
                 render: (setting: Setting) => setting.addToggle((toggle) => toggle
-                    .setValue(this.plugin.settings.showHighlights)
+                    .setValue(this.plugin.toolSettings.showHighlights)
                     .onChange(async (value: boolean) => {
-                        this.plugin.settings.showHighlights = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.showHighlights = value;
+                        await this.plugin.saveToolData();
                         this.plugin.refreshEditorDecorations();
                     }))
             },
@@ -1390,20 +1389,20 @@ class SideNoteSettingTab extends PluginSettingTab {
                 name: "启用选区工具栏",
                 desc: "选中文字后显示快速批注工具栏。",
                 render: (setting: Setting) => setting.addToggle((toggle) => toggle
-                    .setValue(this.plugin.settings.enableSelectionToolbar)
+                    .setValue(this.plugin.toolSettings.enableSelectionToolbar)
                     .onChange(async (value: boolean) => {
-                        this.plugin.settings.enableSelectionToolbar = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.enableSelectionToolbar = value;
+                        await this.plugin.saveToolData();
                     }))
             },
             {
                 name: "显示 Markdown 工具栏",
                 desc: "在编辑器顶部显示标题、加粗、列表、链接等语法按钮，减少手动输入 Markdown 标记。",
                 render: (setting: Setting) => setting.addToggle((toggle) => toggle
-                    .setValue(this.plugin.settings.enableMarkdownToolbar !== false)
+                    .setValue(this.plugin.toolSettings.enableMarkdownToolbar !== false)
                     .onChange(async (value: boolean) => {
-                        this.plugin.settings.enableMarkdownToolbar = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.enableMarkdownToolbar = value;
+                        await this.plugin.saveToolData();
                         this.plugin.syncMarkdownToolbars();
                     }))
             },
@@ -1411,10 +1410,10 @@ class SideNoteSettingTab extends PluginSettingTab {
                 name: "启用拖动调整层级",
                 desc: "在正文左侧显示拖动手柄，拖动可移动段落、列表项或标题，并让批注跟随原文。",
                 render: (setting: Setting) => setting.addToggle((toggle) => toggle
-                    .setValue(this.plugin.settings.enableBlockDrag !== false)
+                    .setValue(this.plugin.toolSettings.enableBlockDrag !== false)
                     .onChange(async (value: boolean) => {
-                        this.plugin.settings.enableBlockDrag = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.enableBlockDrag = value;
+                        await this.plugin.saveToolData();
                         this.plugin.refreshEditorDecorations();
                     }))
             },
@@ -1434,10 +1433,10 @@ class SideNoteSettingTab extends PluginSettingTab {
                 name: "新批注默认颜色",
                 desc: "仅影响之后创建的批注。",
                 render: (setting: Setting) => setting.addColorPicker((colorPicker) => colorPicker
-                    .setValue(this.plugin.settings.highlightColor || "#FFC800")
+                    .setValue(this.plugin.toolSettings.highlightColor || "#FFC800")
                     .onChange(async (value: string) => {
-                        this.plugin.settings.highlightColor = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.highlightColor = value;
+                        await this.plugin.saveToolData();
                         this.plugin.applyHighlightColor();
                     }))
             },
@@ -1445,10 +1444,10 @@ class SideNoteSettingTab extends PluginSettingTab {
                 name: "标记透明度",
                 render: (setting: Setting) => setting.addSlider((slider) => slider
                     .setLimits(0, 1, 0.1)
-                    .setValue(this.plugin.settings.highlightOpacity ?? 0.2)
+                    .setValue(this.plugin.toolSettings.highlightOpacity ?? 0.2)
                     .onChange(async (value: number) => {
-                        this.plugin.settings.highlightOpacity = value;
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.highlightOpacity = value;
+                        await this.plugin.saveToolData();
                         this.plugin.applyHighlightColor();
                     }))
             },
@@ -1456,20 +1455,20 @@ class SideNoteSettingTab extends PluginSettingTab {
                 name: "Markdown 批注备份文件夹",
                 render: (setting: Setting) => setting.addText((text) => text
                     .setPlaceholder("Side-note-comments")
-                    .setValue(this.plugin.settings.markdownFolder || "")
+                    .setValue(this.plugin.toolSettings.markdownFolder || "")
                     .onChange(async (value) => {
-                        this.plugin.settings.markdownFolder = value.trim() || "side-note-comments";
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.markdownFolder = value.trim() || "side-note-comments";
+                        await this.plugin.saveToolData();
                     }))
             },
             {
                 name: "批注附件文件夹",
                 render: (setting: Setting) => setting.addText((text) => text
                     .setPlaceholder("Side-note-attachments")
-                    .setValue(this.plugin.settings.attachmentFolder || "")
+                    .setValue(this.plugin.toolSettings.attachmentFolder || "")
                     .onChange(async (value) => {
-                        this.plugin.settings.attachmentFolder = value.trim() || "side-note-attachments";
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.attachmentFolder = value.trim() || "side-note-attachments";
+                        await this.plugin.saveToolData();
                     }))
             },
             {
@@ -1477,10 +1476,10 @@ class SideNoteSettingTab extends PluginSettingTab {
                 desc: "按笔记保存批注数据；修改后请重新加载插件。",
                 render: (setting: Setting) => setting.addText((text) => text
                     .setPlaceholder("Side-note-data")
-                    .setValue(this.plugin.settings.commentsDataFolder || "")
+                    .setValue(this.plugin.toolSettings.commentsDataFolder || "")
                     .onChange(async (value) => {
-                        this.plugin.settings.commentsDataFolder = value.trim() || "side-note-data";
-                        await this.plugin.saveData();
+                        this.plugin.toolSettings.commentsDataFolder = value.trim() || "side-note-data";
+                        await this.plugin.saveToolData();
                     }))
             },
             {
@@ -1515,7 +1514,7 @@ class SideNoteSettingTab extends PluginSettingTab {
                     .setDisabled(orphanedCount === 0)
                     .onClick(async () => {
                         const deleted = this.plugin.commentManager.deleteOrphanedComments();
-                        await this.plugin.saveData();
+                        await this.plugin.saveToolData();
                         this.plugin.refreshViews();
                         new Notice(`已删除 ${deleted} 条孤立批注`);
                         (this as unknown as PluginSettingTab & { update(): void }).update();
@@ -1529,32 +1528,32 @@ class SideNoteSettingTab extends PluginSettingTab {
         containerEl.empty();
         new Setting(containerEl).setName("批注排序").setDesc("选择侧栏中批注的排列方式。")
             .addDropdown((dropdown) => dropdown.addOption("timestamp", "按创建时间").addOption("position", "按正文位置")
-                .setValue(this.plugin.settings.commentSortOrder).onChange(async (value: "timestamp" | "position") => {
-                    this.plugin.settings.commentSortOrder = value;
-                    await this.plugin.saveData();
+                .setValue(this.plugin.toolSettings.commentSortOrder).onChange(async (value: "timestamp" | "position") => {
+                    this.plugin.toolSettings.commentSortOrder = value;
+                    await this.plugin.saveToolData();
                     this.plugin.refreshViews();
                 }));
         new Setting(containerEl).setName("显示批注标记").setDesc("在编辑视图和阅读视图中显示批注的视觉标记。")
-            .addToggle((toggle) => toggle.setValue(this.plugin.settings.showHighlights).onChange(async (value: boolean) => {
-                    this.plugin.settings.showHighlights = value;
-                    await this.plugin.saveData();
+            .addToggle((toggle) => toggle.setValue(this.plugin.toolSettings.showHighlights).onChange(async (value: boolean) => {
+                    this.plugin.toolSettings.showHighlights = value;
+                    await this.plugin.saveToolData();
                     this.plugin.refreshEditorDecorations();
                 }));
         new Setting(containerEl).setName("启用选区工具栏").setDesc("选中文字后显示快速批注工具栏。")
-            .addToggle((toggle) => toggle.setValue(this.plugin.settings.enableSelectionToolbar).onChange(async (value: boolean) => {
-                    this.plugin.settings.enableSelectionToolbar = value;
-                    await this.plugin.saveData();
+            .addToggle((toggle) => toggle.setValue(this.plugin.toolSettings.enableSelectionToolbar).onChange(async (value: boolean) => {
+                    this.plugin.toolSettings.enableSelectionToolbar = value;
+                    await this.plugin.saveToolData();
                 }));
         new Setting(containerEl).setName("显示 Markdown 工具栏").setDesc("在编辑器顶部显示标题、加粗、列表、链接等语法按钮，减少手动输入 Markdown 标记。")
-            .addToggle((toggle) => toggle.setValue(this.plugin.settings.enableMarkdownToolbar !== false).onChange(async (value: boolean) => {
-                    this.plugin.settings.enableMarkdownToolbar = value;
-                    await this.plugin.saveData();
+            .addToggle((toggle) => toggle.setValue(this.plugin.toolSettings.enableMarkdownToolbar !== false).onChange(async (value: boolean) => {
+                    this.plugin.toolSettings.enableMarkdownToolbar = value;
+                    await this.plugin.saveToolData();
                     this.plugin.syncMarkdownToolbars();
                 }));
         new Setting(containerEl).setName("启用拖动调整层级").setDesc("在正文左侧显示拖动手柄，拖动可移动段落、列表项或标题，并让批注跟随原文。")
-            .addToggle((toggle) => toggle.setValue(this.plugin.settings.enableBlockDrag !== false).onChange(async (value: boolean) => {
-                    this.plugin.settings.enableBlockDrag = value;
-                    await this.plugin.saveData();
+            .addToggle((toggle) => toggle.setValue(this.plugin.toolSettings.enableBlockDrag !== false).onChange(async (value: boolean) => {
+                    this.plugin.toolSettings.enableBlockDrag = value;
+                    await this.plugin.saveToolData();
                     this.plugin.refreshEditorDecorations();
                 }));
         new Setting(containerEl)
@@ -1570,31 +1569,31 @@ class SideNoteSettingTab extends PluginSettingTab {
                     .onClick(() => this.plugin.openHotkeySettings(command.commandName)));
         });
         new Setting(containerEl).setName("新批注默认颜色").setDesc("仅影响之后创建的批注。") .addColorPicker((colorPicker) =>
-                colorPicker.setValue(this.plugin.settings.highlightColor || "#FFC800").onChange(async (value: string) => {
-                    this.plugin.settings.highlightColor = value;
-                    await this.plugin.saveData();
+                colorPicker.setValue(this.plugin.toolSettings.highlightColor || "#FFC800").onChange(async (value: string) => {
+                    this.plugin.toolSettings.highlightColor = value;
+                    await this.plugin.saveToolData();
                     this.plugin.applyHighlightColor();
                 }));
         new Setting(containerEl).setName("标记透明度").addSlider((slider) =>
-                slider.setLimits(0, 1, 0.1).setValue(this.plugin.settings.highlightOpacity ?? 0.2).onChange(async (value: number) => {
-                    this.plugin.settings.highlightOpacity = value;
-                    await this.plugin.saveData();
+                slider.setLimits(0, 1, 0.1).setValue(this.plugin.toolSettings.highlightOpacity ?? 0.2).onChange(async (value: number) => {
+                    this.plugin.toolSettings.highlightOpacity = value;
+                    await this.plugin.saveToolData();
                     this.plugin.applyHighlightColor();
                 }));
         new Setting(containerEl).setName("Markdown 批注备份文件夹").addText((text) =>
-                text.setPlaceholder("Side-note-comments").setValue(this.plugin.settings.markdownFolder || "").onChange(async (value) => {
-                    this.plugin.settings.markdownFolder = value.trim() || "side-note-comments";
-                    await this.plugin.saveData();
+                text.setPlaceholder("Side-note-comments").setValue(this.plugin.toolSettings.markdownFolder || "").onChange(async (value) => {
+                    this.plugin.toolSettings.markdownFolder = value.trim() || "side-note-comments";
+                    await this.plugin.saveToolData();
                 }));
         new Setting(containerEl).setName("批注附件文件夹").addText((text) =>
-                text.setPlaceholder("Side-note-attachments").setValue(this.plugin.settings.attachmentFolder || "").onChange(async (value) => {
-                    this.plugin.settings.attachmentFolder = value.trim() || "side-note-attachments";
-                    await this.plugin.saveData();
+                text.setPlaceholder("Side-note-attachments").setValue(this.plugin.toolSettings.attachmentFolder || "").onChange(async (value) => {
+                    this.plugin.toolSettings.attachmentFolder = value.trim() || "side-note-attachments";
+                    await this.plugin.saveToolData();
                 }));
         new Setting(containerEl).setName("批注数据文件夹").setDesc("按笔记保存批注数据；修改后请重新加载插件。") .addText((text) =>
-                text.setPlaceholder("Side-note-data").setValue(this.plugin.settings.commentsDataFolder || "").onChange(async (value) => {
-                    this.plugin.settings.commentsDataFolder = value.trim() || "side-note-data";
-                    await this.plugin.saveData();
+                text.setPlaceholder("Side-note-data").setValue(this.plugin.toolSettings.commentsDataFolder || "").onChange(async (value) => {
+                    this.plugin.toolSettings.commentsDataFolder = value.trim() || "side-note-data";
+                    await this.plugin.saveToolData();
                 }));
         new Setting(containerEl).setName("创建 Markdown 备份").addButton((button) =>
                 button.setButtonText("创建备份").onClick(async () => {
@@ -1611,7 +1610,7 @@ class SideNoteSettingTab extends PluginSettingTab {
         new Setting(containerEl).addButton((button) =>
                 button.setButtonText(`删除 ${orphanedCount} 条孤立批注`).setWarning().onClick(async () => {
                     const deleted = this.plugin.commentManager.deleteOrphanedComments();
-                    await this.plugin.saveData();
+                    await this.plugin.saveToolData();
                     this.plugin.refreshViews();
                     new Notice(`已删除 ${deleted} 条孤立批注`);
                     this.display();
@@ -1621,7 +1620,7 @@ class SideNoteSettingTab extends PluginSettingTab {
 
 // --- Main Plugin Class ---
 
-export default class SideNote extends Plugin {
+export default class SideNote extends MindmapPluginBase {
     preferences: Preferences = { filter: {}, presets: [] };
     drafts: DraftStore;
     pendingRebind: Comment | null = null;
@@ -1759,7 +1758,7 @@ export default class SideNote extends Plugin {
         }; modal.open();
     }
     commentManager: CommentManager;
-    settings: SideNoteSettings;
+    toolSettings: SideNoteSettings;
     comments: Comment[] = [];
     imageHashes: Record<string, string> = {};
     private orphanNoticeTimer: number | null = null;
@@ -2140,7 +2139,7 @@ export default class SideNote extends Plugin {
 
     private applyReadingViewHighlightsToSection(root: HTMLElement, state: ReadingViewSectionState) {
         this.unwrapReadingViewHighlights(root);
-        if (!this.commentManager || !this.settings.showHighlights) return;
+        if (!this.commentManager || !this.toolSettings.showHighlights) return;
 
         const lineDriftTolerance = 3;
         const comments = this.commentManager.getCommentsForFile(state.sourcePath)
@@ -2257,7 +2256,7 @@ export default class SideNote extends Plugin {
         tooltip.classList.add("is-loading");
 
         const accentBar = tooltip.createDiv("sidenote-tooltip-accent");
-        accentBar.style.background = comment.color || this.settings.highlightColor || "#FFC800";
+        accentBar.style.background = comment.color || this.toolSettings.highlightColor || "#FFC800";
         const body = tooltip.createDiv("sidenote-tooltip-body");
         const content = body.createDiv("sidenote-tooltip-content markdown-rendered");
         const metaRow = body.createDiv("sidenote-tooltip-meta");
@@ -2493,7 +2492,7 @@ export default class SideNote extends Plugin {
 
     /** Handles the drag gutter: only the main Markdown editor of a note gets handles. */
     private isBlockDragEnabled(view: EditorView): boolean {
-        if (this.settings.enableBlockDrag === false) return false;
+        if (this.toolSettings.enableBlockDrag === false) return false;
         if (!this.getFilePathForEditorView(view)) return false;
         if (view.dom.closest('.cm-table-widget')) return false;
         return !!view.dom.closest('.markdown-source-view');
@@ -2572,7 +2571,7 @@ export default class SideNote extends Plugin {
 
     /** Mounts or removes the fixed Markdown toolbar on every open Markdown leaf. */
     public syncMarkdownToolbars(): void {
-        if (this.settings.enableMarkdownToolbar === false) {
+        if (this.toolSettings.enableMarkdownToolbar === false) {
             for (const dispose of this.markdownToolbars.values()) dispose();
             this.markdownToolbars.clear();
             return;
@@ -2611,7 +2610,7 @@ export default class SideNote extends Plugin {
     }
 
     public async handleAddCommentFromEditorView(editorView: EditorView, markType: CommentMarkType, initialColor?: string, skipModal: boolean = false) {
-        const resolvedColor = initialColor || this.settings.highlightColor || DEFAULT_SETTINGS.highlightColor;
+        const resolvedColor = initialColor || this.toolSettings.highlightColor || DEFAULT_SETTINGS.highlightColor;
         const selection = editorView.state.selection.main;
         if (selection.empty || selection.to <= selection.from) {
             new Notice("请先选择要批注的文字。");
@@ -2864,7 +2863,7 @@ export default class SideNote extends Plugin {
     }
 
     public getCommentHighlightPresentation(comment: Comment): { className: string, style?: string } {
-        const presentation = markPresentation(comment, this.settings.highlightOpacity);
+        const presentation = markPresentation(comment, this.toolSettings.highlightOpacity);
         return { ...presentation, className: `${presentation.className} sidenote-table-highlight` };
     }
 
@@ -2929,7 +2928,7 @@ export default class SideNote extends Plugin {
     public applyRenderedTableHighlights(view: EditorView) {
         if (!this.commentManager) return;
         const filePath = this.getFilePathForEditorView(view);
-        if (!filePath || !this.settings.showHighlights) return;
+        if (!filePath || !this.toolSettings.showHighlights) return;
 
         const docText = view.state.doc.toString();
         const blocks = this.getMarkdownTableBlocks(docText);
@@ -3016,14 +3015,14 @@ export default class SideNote extends Plugin {
     }
 
     private async ensureCommentFolder(): Promise<string> {
-        const folder = this.settings.markdownFolder.trim() || DEFAULT_SETTINGS.markdownFolder;
+        const folder = this.toolSettings.markdownFolder.trim() || DEFAULT_SETTINGS.markdownFolder;
         const normalized = folder.replace(/^\/+|\/+$/g, "");
         if (!(await this.app.vault.adapter.exists(normalized))) await this.app.vault.createFolder(normalized);
         return normalized;
     }
 
     private getSideNoteFilePath(notePath: string): string {
-        const folder = this.settings.markdownFolder.trim() || DEFAULT_SETTINGS.markdownFolder;
+        const folder = this.toolSettings.markdownFolder.trim() || DEFAULT_SETTINGS.markdownFolder;
         const normalized = folder.replace(/^\/+|\/+$/g, "");
         const base = notePath.replace(/\.md$/i, "").replace(/\//g, "__");
         return `${normalized}/${base}-sidenote.md`;
@@ -3059,20 +3058,20 @@ export default class SideNote extends Plugin {
                 changed = true;
             }
         }
-        if (changed) await this.saveData();
+        if (changed) await this.saveToolData();
     }
 
     // --- Per-file comment storage ---
 
     private getCommentsJsonPath(notePath: string): string {
-        const folder = this.settings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder;
+        const folder = this.toolSettings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder;
         const normalized = normalizePath(folder);
         const base = notePath.replace(/\.md$/i, "").replace(/\//g, "__");
         return `${normalized}/${base}.json`;
     }
 
     private async ensureCommentsDataFolder(): Promise<string> {
-        const folder = this.settings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder;
+        const folder = this.toolSettings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder;
         const normalized = normalizePath(folder);
         if (!(await this.app.vault.adapter.exists(normalized))) {
             await this.app.vault.createFolder(normalized);
@@ -3081,7 +3080,7 @@ export default class SideNote extends Plugin {
     }
 
     async loadAllCommentsFromFiles(): Promise<Comment[]> {
-        const folder = this.settings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder;
+        const folder = this.toolSettings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder;
         const normalized = normalizePath(folder);
         const allComments: Comment[] = [];
         if (await this.app.vault.adapter.exists(normalized)) {
@@ -3215,7 +3214,7 @@ export default class SideNote extends Plugin {
             for (const oc of orphans) {
                 this.commentManager.deleteComment(oc.timestamp);
             }
-            await this.saveData();
+            await this.saveToolData();
             this.refreshViews();
             notice.hide();
             new Notice(`已删除 ${orphans.length} 条孤立批注。`);
@@ -3243,7 +3242,7 @@ export default class SideNote extends Plugin {
     }
 
     public async handleAddComment(editor: Editor, view: MarkdownView | import("obsidian").MarkdownFileInfo, markType: CommentMarkType, initialColor?: string, skipModal: boolean = false) {
-        const resolvedColor = initialColor || this.settings.highlightColor || DEFAULT_SETTINGS.highlightColor;
+        const resolvedColor = initialColor || this.toolSettings.highlightColor || DEFAULT_SETTINGS.highlightColor;
         const selection = editor.getSelection();
         const filePath = view.file?.path;
         if (selection && selection.trim().length > 0 && filePath) {
@@ -3333,6 +3332,14 @@ export default class SideNote extends Plugin {
     }
 
     async onload() {
+        // Register the annotation settings page first so Obsidian's plugin
+        // "Options" button (the first tab with this plugin id) opens the
+        // original settings; the fused mind-map tab follows during super.onload.
+        this.addSettingTab(new SideNoteSettingTab(this.app, this));
+        // The fused mind-map editor is the base plugin: it registers the full
+        // Weilanx/gogoga canvas, .wmind/.xmind views, Markdown switch and
+        // commands before the annotation side is layered on top.
+        await super.onload();
         await migrateLegacyData(this.app, this.manifest.id, ['personal-markdown-tool', 'side-comments-origin'], ['data.json', 'enhancements.json']);
         // Heal orphaned floating windows and stale cross-reload modal references first.
         CommentModal.closeActive();
@@ -3364,19 +3371,11 @@ export default class SideNote extends Plugin {
             })
         );
         
-        this.addSettingTab(new SideNoteSettingTab(this.app, this));
         this.registerView("sidenote-view", (leaf) => new SideNoteView(leaf, this));
-        // The personal-mindmap plugin now owns the mind-map view. Do not add a
-        // second top-right switch or keep the old canvas: register a tiny
-        // forwarding view for tabs that still point at the old view type.
-        if (personalMindmapProvidesView(this.app)) {
-            registerLegacyMindmapBridge(this, this.app);
-        } else {
-            registerMarkdownTool(this, {
-                comments: path => this.commentManager.getCommentsForFile(path),
-                openComment: timestamp => this.activateViewAndHighlightComment(timestamp),
-            });
-        }
+        // Workspaces created while the standalone personal-mindmap plugin was
+        // installed still reference its view types. Forward those tabs to the
+        // fused views instead of leaving dead leaves behind.
+        registerMindmapBridges(this, this.app);
 
         this.registerObsidianProtocolHandler("sidenote", async (params) => {
             const timestamp = parseInt(params.timestamp);
@@ -3499,14 +3498,14 @@ export default class SideNote extends Plugin {
         this.registerEvent(this.app.vault.on('rename', async (file, oldPath) => {
             if (file instanceof TFile && file.extension === 'md') {
                 this.commentManager.renameFile(oldPath, file.path);
-                await this.saveData();
+                await this.saveToolData();
                 this.refreshViews();
             }
         }));
         this.registerEvent(this.app.vault.on('modify', async (file) => {
             if (this.isSaving) return;
             // Ignore our own comment data files
-            const dataFolder = normalizePath(this.settings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder);
+            const dataFolder = normalizePath(this.toolSettings.commentsDataFolder?.trim() || DEFAULT_SETTINGS.commentsDataFolder);
             if (file.path.startsWith(dataFolder + '/')) return;
 
             const pluginDataPath = normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}/data.json`);
@@ -3561,6 +3560,8 @@ export default class SideNote extends Plugin {
             window.clearTimeout(this.orphanNoticeTimer);
             this.orphanNoticeTimer = null;
         }
+        // Base plugin cleans up registered views, commands, events and styles.
+        super.onunload();
     }
 
     async activateViewAndHighlightComment(timestamp: number) {
@@ -3590,7 +3591,7 @@ export default class SideNote extends Plugin {
     }
 
     async onCommentsChanged(message: string) {
-        await this.saveData();
+        await this.saveToolData();
         this.refreshViews();
         this.refreshEditorDecorations();
         this.scheduleRenderedTableHighlights();
@@ -3625,7 +3626,7 @@ export default class SideNote extends Plugin {
         const deletedComment = this.comments.find(comment => comment.timestamp === timestamp);
         if (!deletedComment) return;
         this.commentManager.deleteComment(timestamp);
-        await this.saveData();
+        await this.saveToolData();
         this.refreshViews();
         this.refreshEditorDecorations();
 
@@ -3637,7 +3638,7 @@ export default class SideNote extends Plugin {
         undoButton.onclick = async () => {
             if (!this.comments.some(comment => comment.timestamp === deletedComment.timestamp)) {
                 await this.commentManager.addComment(deletedComment);
-                await this.saveData();
+                await this.saveToolData();
                 this.refreshViews();
                 this.refreshEditorDecorations();
                 new Notice('已恢复批注');
@@ -3690,7 +3691,7 @@ export default class SideNote extends Plugin {
             ...(loadedData ?? {}),
             imageHashes: loadedData?.imageHashes ?? {}
         };
-        this.settings = { ...DEFAULT_SETTINGS, ...rawData };
+        this.toolSettings = { ...DEFAULT_SETTINGS, ...rawData };
         this.imageHashes = rawData.imageHashes || {};
 
         // Load comments from per-file storage
@@ -3712,7 +3713,7 @@ export default class SideNote extends Plugin {
                 new Notice(`已迁移 ${migratedCount} 条批注到独立文件存储。`);
             }
             // Save data.json without comments
-            const cleanData = { ...this.settings, imageHashes: this.imageHashes };
+            const cleanData = { ...this.toolSettings, imageHashes: this.imageHashes };
             await super.saveData(cleanData);
         }
 
@@ -3731,17 +3732,17 @@ export default class SideNote extends Plugin {
                 needsSave = true;
             }
             if (!comment.color) {
-                comment.color = this.settings.highlightColor || DEFAULT_SETTINGS.highlightColor;
+                comment.color = this.toolSettings.highlightColor || DEFAULT_SETTINGS.highlightColor;
                 needsSave = true;
             }
         }
-        if (needsSave) await this.saveData();
+        if (needsSave) await this.saveToolData();
     }
 
     applyHighlightColor() {
         const root = document.documentElement;
-        const rgb = this.hexToRgb(this.settings.highlightColor);
-        const opacity = this.settings.highlightOpacity;
+        const rgb = this.hexToRgb(this.toolSettings.highlightColor);
+        const opacity = this.toolSettings.highlightOpacity;
         root.style.setProperty('--sidenote-highlight-color', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`);
         root.style.setProperty('--sidenote-highlight-hover', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.15, 1)})`);
         root.style.setProperty('--sidenote-highlight-border', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(opacity + 0.4, 1)})`);
@@ -3756,14 +3757,14 @@ export default class SideNote extends Plugin {
         return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 255, g: 200, b: 0 };
     }
 
-    async saveData() {
+    async saveToolData() {
         return this.enqueueWrite(() => this.writePluginData());
     }
 
     private async writePluginData() {
         this.isSaving = true;
         try {
-            const dataToSave = { ...this.settings, imageHashes: this.imageHashes };
+            const dataToSave = { ...this.toolSettings, imageHashes: this.imageHashes };
             await super.saveData(dataToSave);
             await this.saveAllCommentFiles();
         } finally {
@@ -3839,7 +3840,7 @@ export default class SideNote extends Plugin {
             }
 
             checkSelection() {
-                if (!plugin.settings.enableSelectionToolbar && !this.explicitToolbar) {
+                if (!plugin.toolSettings.enableSelectionToolbar && !this.explicitToolbar) {
                     this.hideToolbar();
                     return;
                 }
@@ -3927,7 +3928,7 @@ export default class SideNote extends Plugin {
                         button.setAttribute('aria-pressed', active ? 'true' : 'false');
                     });
 
-                const activeColor = existingComment?.color || plugin.settings.highlightColor || DEFAULT_SETTINGS.highlightColor;
+                const activeColor = existingComment?.color || plugin.toolSettings.highlightColor || DEFAULT_SETTINGS.highlightColor;
                 const toolbarColorPicker = this.toolbar.querySelector<HTMLInputElement>('.sidenote-toolbar-color-picker');
                 if (toolbarColorPicker && /^#[0-9a-f]{6}$/i.test(activeColor)) toolbarColorPicker.value = activeColor;
                 const colorCircles = Array.from(this.toolbar.querySelectorAll<HTMLElement>('.sidenote-color-circle'));
@@ -4007,7 +4008,7 @@ export default class SideNote extends Plugin {
                     btn.setAttribute('aria-pressed', 'false');
                     setIcon(btn, iconName);
                     btn.onclick = async () => {
-                        const color = markType === 'text-color' ? '#dc2626' : (this.toolbar?.querySelector('.sidenote-toolbar-color-picker') as HTMLInputElement)?.value || plugin.settings.highlightColor || "#FFC800";
+                        const color = markType === 'text-color' ? '#dc2626' : (this.toolbar?.querySelector('.sidenote-toolbar-color-picker') as HTMLInputElement)?.value || plugin.toolSettings.highlightColor || "#FFC800";
                         await plugin.handleAddCommentFromEditorView(this.view, markType, color, skipModal);
                     };
                     return btn;
@@ -4045,7 +4046,7 @@ export default class SideNote extends Plugin {
                 const colorPicker = createEl('input');
                 colorPicker.type = 'color';
                 colorPicker.className = 'sidenote-toolbar-color-picker';
-                colorPicker.value = plugin.settings.highlightColor || "#FFC800";
+                colorPicker.value = plugin.toolSettings.highlightColor || "#FFC800";
 
                 let activeCircle: HTMLElement | null = null;
                 const updateActiveCircle = (circle: HTMLElement | null) => {
@@ -4221,7 +4222,7 @@ export default class SideNote extends Plugin {
             }
             buildDecorations(view: EditorView): DecorationSet {
                 const builder = new RangeSetBuilder<Decoration>();
-                if (!plugin.settings.showHighlights) return builder.finish();
+                if (!plugin.toolSettings.showHighlights) return builder.finish();
                 
                 const filePath = plugin.getFilePathForEditorView(view);
                 if (!filePath) return builder.finish();
@@ -4290,7 +4291,7 @@ export default class SideNote extends Plugin {
                         if (!comment.isOrphaned && doc.sliceString(from, to) !== comment.selectedText) return;
                         if (from >= 0 && to <= doc.length && from < to) {
                             const attributes: Record<string, string> = { 'data-comment-timestamp': comment.timestamp.toString() };
-                            const presentation = markPresentation(comment, plugin.settings.highlightOpacity);
+                            const presentation = markPresentation(comment, plugin.toolSettings.highlightOpacity);
                             attributes.style = presentation.style;
                             decorationsArray.push({
                                 from, to,

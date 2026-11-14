@@ -1,3 +1,9 @@
+/*!
+ * Taube Markdown Tool styles.
+ * Annotation UI is maintained in styles.tool.css. Mind-map styles are generated
+ * from vendor/personal-mindmap (MIT: Weilanx, gogoga) by scripts/build-styles.mjs.
+ * Do not edit the generated part below the marker.
+ */
 /* ==========================================================================
    Side Comments — Notion-Level UI
    Design System: Clean, minimal, sophisticated
@@ -1886,3 +1892,3010 @@ body.mt-drag-cursor * { cursor: grabbing !important; }
     .mt-drag-handle { opacity: 0.6; min-height: 24px; font-size: 14px; }
     .mt-md-toolbar-btn { min-width: 34px; height: 34px; }
 }
+
+
+/* ===== generated: fused mind-map canvas (vendor/personal-mindmap) ===== */
+.wm-obsidian {
+  --vscode-editor-background: var(--background-primary);
+  --vscode-foreground: var(--text-normal);
+  --vscode-descriptionForeground: var(--text-muted);
+  --vscode-focusBorder: var(--interactive-accent);
+  --vscode-panel-border: var(--background-modifier-border);
+  --vscode-widget-border: var(--background-modifier-border);
+  --vscode-sideBar-background: var(--background-secondary);
+  --vscode-toolbar-hoverBackground: var(--background-modifier-hover);
+  --vscode-toolbar-activeBackground: var(--background-modifier-active-hover);
+  --vscode-editorWidget-background: var(--background-primary);
+  --vscode-input-background: var(--background-modifier-form-field);
+  --vscode-input-border: var(--background-modifier-border);
+  --vscode-button-background: var(--interactive-accent);
+  --vscode-button-foreground: var(--text-on-accent);
+  --vscode-font-family: var(--font-interface);
+}
+.workspace-leaf-content[data-type=taube-markdown-tool-wmind] > .view-content,
+.workspace-leaf-content[data-type=markdown-tool-mindmap] > .view-content {
+  padding: 0;
+  overflow: hidden;
+}
+.wm-obsidian > .wm-host {
+  height: 100%;
+}
+body .wm-root :is(button, input, select, textarea) {
+  all: revert;
+  box-sizing: border-box;
+}
+.view-action.wm-md-mindmap-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  padding: 0 8px;
+}
+.view-action.wm-md-mindmap-action .wm-md-mindmap-label {
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .view-action.wm-md-mindmap-action {
+    padding: 0 5px;
+  }
+  .view-action.wm-md-mindmap-action .wm-md-mindmap-label {
+    display: none;
+  }
+}
+body .wm-root {
+  --wm-bg: var(--vscode-editor-background, #ffffff);
+  --wm-fg: var(--vscode-foreground, #24292f);
+  --wm-muted: var(--vscode-descriptionForeground, #6e7781);
+  --wm-border: var(--vscode-panel-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.25)));
+  --wm-bar: var(--vscode-sideBar-background, var(--vscode-editor-background, #f6f8fa));
+  --wm-hover: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.14));
+  --wm-active: var(--vscode-toolbar-activeBackground, rgba(47, 123, 255, 0.16));
+  --wm-accent: var(--vscode-focusBorder, #2f7bff);
+  --wm-input-bg: var(--vscode-input-background, #ffffff);
+  --wm-input-border: var(--vscode-input-border, rgba(128, 128, 128, 0.35));
+  --wm-btn-bg: var(--vscode-button-background, #2f7bff);
+  --wm-btn-fg: var(--vscode-button-foreground, #ffffff);
+  --wm-pop: var(--vscode-editorWidget-background, #ffffff);
+  --wm-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --wm-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif);
+  height: 100%;
+  font-family: var(--wm-font);
+  font-size: 13px;
+  color: var(--wm-fg);
+  background: var(--wm-bg);
+}
+body .wm-root *,
+body .wm-root *::before,
+body .wm-root *::after {
+  box-sizing: border-box;
+}
+body .wm-root button {
+  font: inherit;
+  color: inherit;
+}
+body .wm-root .wm-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+body .wm-root .wm-loading {
+  height: 100%;
+}
+body .wm-root .wm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--wm-border);
+  background: var(--wm-bar);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body .wm-root .wm-tb-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+body .wm-root .wm-tb-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--wm-border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+body .wm-root .wm-tb-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+body .wm-root .wm-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+body .wm-root .wm-tb-btn:hover:not(:disabled) {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-tb-btn.wm-active {
+  background: var(--wm-active);
+}
+body .wm-root .wm-tb-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+body .wm-root .wm-menu {
+  position: relative;
+}
+body .wm-root .wm-popover {
+  position: fixed;
+  margin-top: 4px;
+  transform: translateX(-30%);
+  z-index: 50;
+  padding: 8px;
+  border: 1px solid var(--wm-border);
+  border-radius: 10px;
+  background: var(--wm-pop);
+  box-shadow: var(--wm-shadow);
+}
+body .wm-root .wm-menu-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+body .wm-root .wm-menu-list button {
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-menu-list button:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 7px;
+  background: var(--wm-hover);
+}
+body .wm-root .wm-seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-seg button.wm-active {
+  background: var(--wm-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+body .wm-root .wm-seg-full {
+  display: flex;
+  width: 100%;
+}
+body .wm-root .wm-seg-full button {
+  flex: 1;
+}
+body .wm-root .wm-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px 6px;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+body .wm-root .wm-card:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-card.wm-active {
+  border-color: var(--wm-accent);
+}
+body .wm-root .wm-theme-grid,
+body .wm-root .wm-struct-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+body .wm-root .wm-struct-grid {
+  grid-template-columns: repeat(2, 1fr);
+  min-width: 200px;
+}
+body .wm-root .wm-theme-grid {
+  min-width: 250px;
+}
+body .wm-root .wm-theme-grid-panel,
+body .wm-root .wm-struct-grid-panel {
+  min-width: 0;
+}
+body .wm-root .wm-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+body .wm-root .wm-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+body .wm-root .wm-canvas {
+  position: absolute;
+  inset: 0;
+  cursor: default;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+body .wm-root .wm-laser {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+body .wm-root .wm-laser-on .wm-canvas,
+body .wm-root .wm-laser-on .wm-canvas * {
+  cursor: none !important;
+}
+body .wm-root .wm-canvas.wm-panning {
+  cursor: grabbing;
+}
+body .wm-root .wm-canvas.wm-linking {
+  cursor: crosshair;
+}
+body .wm-root .wm-svg {
+  display: block;
+}
+body .wm-root .wm-topic {
+  cursor: pointer;
+}
+body .wm-root .wm-topic .wm-hover {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+body .wm-root .wm-topic:hover .wm-hover {
+  opacity: 1;
+}
+body .wm-root .wm-ghost {
+  opacity: 0.75;
+  pointer-events: none;
+}
+body .wm-root .wm-fold {
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+body .wm-root .wm-topic:hover .wm-fold,
+body .wm-root .wm-fold.wm-fold-on {
+  opacity: 1;
+}
+body .wm-root [data-kind=rel],
+body .wm-root [data-kind=boundary] {
+  cursor: pointer;
+}
+body .wm-root [data-kind=link-icon],
+body .wm-root [data-kind=note-icon] {
+  cursor: pointer;
+}
+body .wm-root .wm-editor {
+  position: absolute;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  resize: none;
+  border: none;
+  outline: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  text-align: center;
+  field-sizing: content;
+  max-width: 600px;
+  width: 1px;
+  height: 1px;
+  caret-color: transparent;
+}
+body .wm-root .wm-editor.wm-editing {
+  opacity: 1;
+  pointer-events: auto;
+  width: auto;
+  height: auto;
+  caret-color: auto;
+  box-shadow: 0 0 0 2px #2f7bff, 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+body .wm-root .wm-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--wm-border);
+  border-radius: 9px;
+  background: var(--wm-pop);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+body .wm-root .wm-zoom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  min-width: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-zoom button:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-zoom-pct {
+  min-width: 48px !important;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+body .wm-root .wm-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(30, 32, 36, 0.92);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 20;
+}
+body .wm-root .wm-issues {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: min(640px, 90%);
+  padding: 6px 12px;
+  border: 1px solid rgba(245, 166, 35, 0.5);
+  border-radius: 8px;
+  background: var(--wm-pop);
+  box-shadow: var(--wm-shadow);
+  font-size: 12px;
+}
+body .wm-root .wm-issues-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d48806;
+}
+body .wm-root .wm-issues ul {
+  margin: 6px 0 2px;
+  padding-left: 18px;
+  max-height: 200px;
+  overflow: auto;
+  color: var(--wm-fg);
+}
+body .wm-root .wm-link-btn {
+  border: none;
+  background: none;
+  color: var(--wm-accent);
+  cursor: pointer;
+  padding: 0;
+}
+body .wm-root .wm-panel {
+  width: 272px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--wm-border);
+  background: var(--wm-bar);
+}
+body .wm-root .wm-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--wm-border);
+}
+body .wm-root .wm-tabs {
+  display: flex;
+  gap: 4px;
+}
+body .wm-root .wm-tabs button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--wm-muted);
+}
+body .wm-root .wm-tabs button.wm-active {
+  background: var(--wm-hover);
+  color: var(--wm-fg);
+}
+body .wm-root .wm-tabs button:disabled {
+  opacity: 0.4;
+}
+body .wm-root .wm-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--wm-muted);
+}
+body .wm-root .wm-icon-btn:hover {
+  background: var(--wm-hover);
+  color: var(--wm-fg);
+}
+body .wm-root .wm-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px 16px;
+}
+body .wm-root .wm-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+body .wm-root .wm-sec {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--wm-border);
+}
+body .wm-root .wm-sec-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--wm-muted);
+  text-transform: uppercase;
+}
+body .wm-root .wm-sel-count {
+  padding: 8px 0 0;
+  color: var(--wm-muted);
+  font-size: 12px;
+}
+body .wm-root .wm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+body .wm-root .wm-row-label {
+  flex-shrink: 0;
+  min-width: 44px;
+  color: var(--wm-muted);
+  font-size: 12px;
+}
+body .wm-root .wm-select,
+body .wm-root .wm-input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--wm-input-border);
+  border-radius: 6px;
+  background: var(--wm-input-bg);
+  color: var(--wm-fg);
+  font: inherit;
+  outline: none;
+}
+body .wm-root .wm-select:focus,
+body .wm-root .wm-input:focus {
+  border-color: var(--wm-accent);
+}
+body .wm-root textarea.wm-input {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+body .wm-root .wm-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+body .wm-root .wm-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 5px;
+  cursor: pointer;
+  position: relative;
+}
+body .wm-root .wm-swatch.wm-active {
+  box-shadow: 0 0 0 2px var(--wm-bg), 0 0 0 3.5px var(--wm-accent);
+}
+body .wm-root .wm-swatch-none {
+  background:
+    linear-gradient(
+      135deg,
+      transparent 45%,
+      #e5484d 45%,
+      #e5484d 55%,
+      transparent 55%),
+    var(--wm-input-bg);
+}
+body .wm-root .wm-swatch-custom {
+  background:
+    conic-gradient(
+      #f0604d,
+      #f5a623,
+      #f8d74a,
+      #3db47a,
+      #2f9bea,
+      #7c63f2,
+      #e3578f,
+      #f0604d);
+  overflow: hidden;
+}
+body .wm-root .wm-swatch-custom input {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+body .wm-root .wm-chip {
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--wm-input-border);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+}
+body .wm-root .wm-chip.wm-active {
+  border-color: var(--wm-accent);
+  color: var(--wm-accent);
+}
+body .wm-root .wm-shapes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+body .wm-root .wm-shape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  background: var(--wm-hover);
+  cursor: pointer;
+}
+body .wm-root .wm-shape.wm-active {
+  border-color: var(--wm-accent);
+}
+body .wm-root .wm-marker-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+body .wm-root .wm-marker-row .wm-row-label {
+  padding-top: 4px;
+}
+body .wm-root .wm-markers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+body .wm-root .wm-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-marker:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-marker.wm-active {
+  border-color: var(--wm-accent);
+  background: var(--wm-active);
+}
+body .wm-root .wm-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+body .wm-root .wm-label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 9px;
+  border-radius: 10px;
+  background: var(--wm-active);
+  font-size: 12px;
+}
+body .wm-root .wm-label-chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--wm-muted);
+  padding: 0 3px;
+}
+body .wm-root .wm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--wm-input-border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-btn:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-btn-block {
+  width: 100%;
+  margin-top: 10px;
+}
+body .wm-root .wm-btn-primary {
+  border-color: transparent;
+  background: var(--wm-btn-bg);
+  color: var(--wm-btn-fg);
+}
+body .wm-root .wm-btn-primary:hover {
+  filter: brightness(1.08);
+  background: var(--wm-btn-bg);
+}
+body .wm-root .wm-btn-danger {
+  color: #e5484d;
+}
+body .wm-root .wm-row .wm-btn {
+  flex: 1;
+}
+body .wm-root .wm-stats {
+  color: var(--wm-muted);
+  font-size: 12px;
+}
+body .wm-root .wm-outline {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+body .wm-root .wm-outline-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 120px;
+}
+body .wm-root .wm-orow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border-radius: 6px;
+}
+body .wm-root .wm-orow.wm-active {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-obullet {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+body .wm-root .wm-obullet span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wm-muted);
+}
+body .wm-root .wm-obullet.wm-has-kids {
+  cursor: pointer;
+}
+body .wm-root .wm-obullet.wm-collapsed span {
+  width: 10px;
+  height: 10px;
+  background: var(--wm-muted);
+  box-shadow: 0 0 0 3px var(--wm-hover);
+}
+body .wm-root .wm-otext {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 4px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--wm-fg);
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  field-sizing: content;
+}
+body .wm-root .wm-orow-root .wm-otext {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 600;
+}
+body .wm-root .wm-orow-root .wm-obullet {
+  height: 38px;
+}
+body .wm-root .wm-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+}
+body .wm-root .wm-error-card {
+  max-width: 520px;
+  text-align: center;
+}
+body .wm-root .wm-error-icon {
+  color: #e5484d;
+  transform: scale(2);
+  margin-bottom: 16px;
+}
+body .wm-root .wm-error-card h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+body .wm-root .wm-error-pos {
+  color: var(--wm-muted);
+}
+body .wm-root .wm-error-card pre {
+  text-align: left;
+  white-space: pre-wrap;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--wm-hover);
+  font-size: 12px;
+}
+body .wm-root .wm-popover.wm-popover-right {
+  transform: translateX(calc(-100% + 44px));
+}
+body .wm-root .wm-settings {
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+}
+body .wm-root .wm-settings-title {
+  padding: 6px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wm-muted);
+}
+body .wm-root .wm-settings-title:not(:first-child) {
+  margin-top: 6px;
+  border-top: 1px solid var(--wm-border);
+  padding-top: 10px;
+}
+body .wm-root .wm-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+body .wm-root .wm-switch-row:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--wm-input-border);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+body .wm-root .wm-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+body .wm-root .wm-switch.wm-on {
+  background: var(--wm-btn-bg);
+}
+body .wm-root .wm-switch.wm-on::after {
+  transform: translateX(12px);
+}
+body .wm-root .wm-card:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+body .wm-root .wm-search {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 15;
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--wm-border);
+  border-radius: 9px;
+  background: var(--wm-pop);
+  box-shadow: var(--wm-shadow);
+}
+body .wm-root .wm-search-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  align-self: stretch;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-search-toggle:hover:not(:disabled) {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-search-toggle:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+body .wm-root .wm-search-toggle svg {
+  transition: transform 0.15s;
+}
+body .wm-root .wm-search-toggle.wm-open svg {
+  transform: rotate(90deg);
+}
+body .wm-root .wm-search-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+body .wm-root .wm-search-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+body .wm-root .wm-search-input {
+  display: flex;
+  align-items: center;
+  width: 220px;
+  height: 26px;
+  padding: 0 2px 0 8px;
+  border: 1px solid var(--wm-input-border);
+  border-radius: 6px;
+  background: var(--wm-input-bg);
+}
+body .wm-root .wm-search-input:focus-within {
+  border-color: var(--wm-accent);
+}
+body .wm-root .wm-search-input input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+body .wm-root .wm-search-case {
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 11px !important;
+  cursor: pointer;
+  opacity: 0.7;
+}
+body .wm-root .wm-search-case:hover {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-search-case.wm-active {
+  opacity: 1;
+  border-color: var(--wm-accent);
+  background: var(--wm-active);
+}
+body .wm-root .wm-search-count {
+  min-width: 52px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--wm-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+body .wm-root .wm-search-count.wm-none {
+  color: #e5484d;
+}
+body .wm-root .wm-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+body .wm-root .wm-search-text-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+body .wm-root .wm-search-btn:hover:not(:disabled),
+body .wm-root .wm-search-text-btn:hover:not(:disabled) {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-search-btn:disabled,
+body .wm-root .wm-search-text-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+body .wm-root .wm-ctx {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid var(--wm-border);
+  border-radius: 8px;
+  background: var(--wm-pop);
+  box-shadow: var(--wm-shadow);
+}
+body .wm-root .wm-ctx button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+body .wm-root .wm-ctx button:hover:not(:disabled) {
+  background: var(--wm-hover);
+}
+body .wm-root .wm-ctx button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+body .wm-root .wm-settings-look {
+  padding: 2px 8px 4px;
+}
+body .wm-root .wm-look button {
+  font-size: 12px;
+  color: inherit;
+}
+body .wm-root .wm-look button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+body .wm-root .wm-fills .wm-shape {
+  flex-direction: column;
+  gap: 2px;
+  height: auto;
+  padding: 5px 0 4px;
+  font-size: 11px;
+  color: inherit;
+}
+body .wm-root .wm-fills .wm-shape svg {
+  opacity: 0.85;
+}
+body .wm-root .wm-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--wm-muted);
+}
+body .wm-root .wm-rich-topic {
+  -webkit-user-select: none;
+  user-select: none;
+}
+body .wm-root .wm-rich-topic p {
+  margin: 0;
+}
+body .wm-root .wm-rich-topic a {
+  cursor: pointer;
+}
+body .wm-root [data-kind=reveal] {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Mind Map — XMind 风格思维导图
+   节点是 HTML，连线是 SVG；所有颜色都走 CSS 变量，跟随 Obsidian 主题与深色模式。
+   ========================================================================== */
+
+.mm-view-content {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.gg-mm-root {
+  --mm-font: var(--font-interface, "Inter", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
+  --mm-bg: var(--background-primary, #ffffff);
+  --mm-line: #2b2b2b;
+  --mm-root-bg: #3f51b5;
+  --mm-root-fg: #ffffff;
+  --mm-main-bg: #e9e9ef;
+  --mm-main-fg: var(--text-normal, #1f1f1f);
+  --mm-node-bg: #f1f1f4;
+  --mm-node-fg: var(--text-normal, #1f1f1f);
+  --mm-selection: var(--interactive-accent, #155dff);
+  --mm-toggle-bg: var(--mm-bg);
+  --mm-toggle-fg: #555555;
+  --mm-toggle-border: #8a8a8a;
+  --mm-max-width: 300px;
+  --mm-root-max-width: 440px;
+
+  /* 各层级的形状与字号，主题在 [data-theme] 块里覆盖 */
+  --mm-root-radius: 8px;
+  --mm-root-pad: 18px 32px;
+  --mm-root-size: 26px;
+  --mm-root-weight: 600;
+  --mm-main-radius: 8px;
+  --mm-main-pad: 10px 16px;
+  --mm-main-size: 17px;
+  --mm-main-weight: 600;
+  --mm-node-radius: 6px;
+  --mm-node-pad: 6px 10px;
+  --mm-node-size: 14px;
+  --mm-node-weight: 400;
+  --mm-node-border: none;
+  --mm-root-border: none;
+  --mm-branch-fg: #1f1f1f;
+  --mm-edge-w1: 3px;
+  --mm-edge-w2: 2px;
+  --mm-edge-w3: 1.5px;
+
+  /* 命名颜色：%%red%% 等 */
+  --mm-c-fg: #1f1f1f;
+  --mm-c-red: #f9a3a3;
+  --mm-c-orange: #fbc98d;
+  --mm-c-yellow: #f7e48e;
+  --mm-c-green: #a3e5a2;
+  --mm-c-teal: #93e3d6;
+  --mm-c-blue: #8edbf7;
+  --mm-c-purple: #d4b5f5;
+  --mm-c-pink: #f8b8da;
+  --mm-c-gray: #dcdce2;
+
+  /* 彩虹分支 */
+  --mm-branch-0: #f76c6c;
+  --mm-branch-1: #ffa36b;
+  --mm-branch-2: #8ccba4;
+  --mm-branch-3: #7fe0d3;
+  --mm-branch-4: #62cff4;
+  --mm-branch-5: #d98cf2;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--mm-bg);
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--mm-font);
+  touch-action: none;
+  cursor: grab;
+}
+
+.theme-dark .gg-mm-root {
+  --mm-line: #c9c9d1;
+  --mm-root-bg: #5c6bc0;
+  --mm-main-bg: #30303a;
+  --mm-node-bg: #2a2a31;
+  --mm-toggle-fg: #bbbbbb;
+  --mm-toggle-border: #777777;
+  --mm-c-fg: #f2f2f2;
+  --mm-c-red: #8c3b3b;
+  --mm-c-orange: #8c5a2b;
+  --mm-c-yellow: #7a6a22;
+  --mm-c-green: #2f6b3a;
+  --mm-c-teal: #23615a;
+  --mm-c-blue: #2a5a78;
+  --mm-c-purple: #5a3e82;
+  --mm-c-pink: #7a3860;
+  --mm-c-gray: #45454e;
+  --mm-branch-0: #e26262;
+  --mm-branch-1: #e8955f;
+  --mm-branch-2: #6fb88c;
+  --mm-branch-3: #5fc9bb;
+  --mm-branch-4: #4fb8dd;
+  --mm-branch-5: #c47ee0;
+}
+
+.mm-viewport {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  /* will-change 由 canvas.ts 在平移/缩放时临时加、停手后摘掉；常驻会让放大后的文字糊 */
+}
+
+.mm-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.mm-edge {
+  fill: none;
+  stroke: var(--mm-line);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: var(--mm-edge-w3);
+}
+.mm-edge[data-depth="1"] { stroke-width: var(--mm-edge-w1); }
+.mm-edges.is-dashed .mm-edge { stroke-dasharray: 6 5; }
+.mm-edge[data-depth="2"] { stroke-width: var(--mm-edge-w2); }
+
+/* 概要：大括号 + 一段比节点轻一档的文字，括号和文字都不接收画布的拖拽 */
+.mm-summary-brace {
+  fill: none;
+  stroke: var(--mm-line);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* 关联线：虚线箭头，压在节点下面；加宽的透明路径负责点选 */
+.mm-rel-line {
+  fill: none;
+  stroke: var(--mm-rel, var(--mm-line));
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+.mm-rel-arrow { fill: var(--mm-rel, var(--mm-line)); stroke: none; opacity: 0.75; }
+.mm-rel-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.mm-rel:hover .mm-rel-line, .mm-rel:hover .mm-rel-arrow { opacity: 1; }
+.mm-rel.is-active .mm-rel-line { stroke: var(--mm-selection); opacity: 1; }
+.mm-rel.is-active .mm-rel-arrow { fill: var(--mm-selection); opacity: 1; }
+.mm-rel-draft {
+  fill: none;
+  stroke: var(--mm-selection);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+/* 线上的文字放在弧顶，盖住底下那段线；拖它改弯曲。没文字时平常不显示，选中线时变成一个小圆点手柄 */
+.mm-rel-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 200px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--mm-bg, transparent);
+  font-family: var(--mm-font);
+  font-size: 12px;
+  line-height: 17px;
+  color: inherit;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: grab;
+  user-select: none;
+}
+.mm-rel-label.is-active { opacity: 1; box-shadow: 0 0 0 1.5px var(--mm-selection); }
+.mm-rel-label.is-editing { cursor: text; user-select: text; min-width: 40px; outline: none; box-shadow: 0 0 0 1.5px var(--mm-selection); text-overflow: clip; }
+.mm-rel-label.is-empty { display: none; }
+.mm-rel-label.is-empty.is-active {
+  display: block;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--mm-selection);
+  box-shadow: 0 0 0 2px var(--mm-bg);
+}
+.mm-rel-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--mm-selection);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+.is-connecting .gg-mm-node { cursor: crosshair; }
+
+.mm-summary {
+  position: absolute;
+  box-sizing: border-box;
+  max-width: 240px;
+  padding: 3px 9px;
+  border: 1.5px solid var(--mm-line);
+  border-radius: 6px;
+  background: var(--mm-bg, transparent);
+  font-family: var(--mm-font);
+  font-size: 13px;
+  line-height: 18px;
+  color: inherit;
+  cursor: default;
+  user-select: none;
+}
+/* 省略号放在里面的文字上：外层不能裁切，不然边缘的拖动竖条会被切掉 */
+.mm-summary-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mm-summary.is-empty { opacity: 0.5; }
+/* 拖过宽度的：按宽度换行，不再省略号 */
+.mm-summary.has-width { max-width: none; }
+.mm-summary.has-width .mm-summary-text { white-space: normal; overflow-wrap: anywhere; }
+.mm-summary .mm-link { color: var(--link-color, var(--mm-selection)); }
+.mm-summary-handle {
+  position: absolute;
+  top: 50%;
+  right: -4px;
+  width: 6px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 3px;
+  background: var(--mm-selection);
+  cursor: ew-resize;
+  opacity: 0;
+}
+.mm-summary[data-side="left"] .mm-summary-handle { right: auto; left: -4px; }
+.gg-mm-root.is-editable .mm-summary:hover .mm-summary-handle { opacity: 0.8; }
+.mm-summary.is-editing .mm-summary-handle { display: none; }
+
+/* 外框 / 概要两端的范围手柄：选中里面的节点或停在概要文字上才显示，拖动改括住的范围 */
+.mm-range-handle {
+  position: absolute;
+  z-index: 3;
+  width: 18px;
+  height: 8px;
+  margin: -4px 0 0 -9px;
+  border-radius: 4px;
+  background: var(--mm-selection);
+  box-shadow: 0 0 0 2px var(--mm-bg, var(--background-primary));
+  cursor: ns-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.mm-range-handle[data-orient="h"] {
+  width: 8px;
+  height: 18px;
+  margin: -9px 0 0 -4px;
+  cursor: ew-resize;
+}
+.mm-range-handle.is-active,
+.mm-range-handle:hover {
+  opacity: 0.9;
+  pointer-events: auto;
+}
+.gg-mm-root.is-range-dragging,
+.gg-mm-root.is-range-dragging * { cursor: ns-resize !important; }
+.gg-mm-root.is-range-dragging-h,
+.gg-mm-root.is-range-dragging-h * { cursor: ew-resize !important; }
+.gg-mm-root.is-editable .mm-summary { cursor: pointer; }
+.mm-summary.is-active { border-color: var(--mm-selection); box-shadow: 0 0 0 1px var(--mm-selection); }
+.mm-summary.is-editing .mm-summary-text { overflow: visible; text-overflow: clip; }
+.mm-summary.is-editing {
+  max-width: none;
+  cursor: text;
+  user-select: text;
+  outline: 2px solid var(--mm-selection);
+  outline-offset: 1px;
+}
+
+/* 外框：虚线圆角框 + 淡底色，开分支色的主题跟随起始节点的分支色 */
+.mm-box {
+  fill: var(--mm-box-color, var(--mm-line));
+  fill-opacity: 0.05;
+  stroke: var(--mm-box-color, var(--mm-line));
+  stroke-opacity: 0.55;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.mm-box.is-active {
+  stroke: var(--mm-selection);
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+.mm-box-title {
+  position: absolute;
+  box-sizing: border-box;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-family: var(--mm-font);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  /* 比节点文字淡一档，一眼能看出是外框的说明而不是节点 */
+  color: var(--mm-box-color, var(--mm-line));
+  opacity: 0.62;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+  user-select: none;
+}
+.gg-mm-root.is-editable .mm-box-title { cursor: pointer; }
+.mm-box-title.is-editing,
+.mm-box-title:hover { opacity: 1; }
+.mm-box-title.is-editing {
+  overflow: visible;
+  text-overflow: clip;
+  max-width: none !important;
+  outline: 1.5px solid var(--mm-selection);
+  background: var(--mm-bg);
+  cursor: text;
+  user-select: text;
+}
+
+.mm-nodes {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* ---------- 节点 ---------- */
+
+.gg-mm-node {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: var(--mm-max-width);
+  padding: var(--mm-node-pad);
+  border: var(--mm-node-border);
+  border-radius: var(--mm-node-radius);
+  background: var(--mm-node-bg);
+  color: var(--mm-node-fg);
+  font-size: calc(var(--mm-node-size) * var(--mm-font-scale, 1));
+  font-weight: var(--mm-node-weight);
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: default;
+  transition: box-shadow 0.12s ease;
+}
+
+.gg-mm-node[data-depth="1"] {
+  background: var(--mm-main-bg);
+  color: var(--mm-main-fg);
+  padding: var(--mm-main-pad);
+  border-radius: var(--mm-main-radius);
+  font-size: calc(var(--mm-main-size) * var(--mm-font-scale, 1));
+  font-weight: var(--mm-main-weight);
+}
+
+.gg-mm-node[data-depth="0"] {
+  background: var(--mm-root-bg);
+  color: var(--mm-root-fg);
+  padding: var(--mm-root-pad);
+  border-radius: var(--mm-root-radius);
+  font-size: calc(var(--mm-root-size) * var(--mm-font-scale, 1));
+  font-weight: var(--mm-root-weight);
+  max-width: var(--mm-root-max-width);
+  border: var(--mm-root-border);
+}
+
+.gg-mm-node[data-color="red"]    { --mm-node-bg: var(--mm-c-red);    --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="orange"] { --mm-node-bg: var(--mm-c-orange); --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="yellow"] { --mm-node-bg: var(--mm-c-yellow); --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="green"]  { --mm-node-bg: var(--mm-c-green);  --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="teal"]   { --mm-node-bg: var(--mm-c-teal);   --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="blue"]   { --mm-node-bg: var(--mm-c-blue);   --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="purple"] { --mm-node-bg: var(--mm-c-purple); --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="pink"]   { --mm-node-bg: var(--mm-c-pink);   --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node[data-color="gray"]   { --mm-node-bg: var(--mm-c-gray);   --mm-node-fg: var(--mm-c-fg); }
+.gg-mm-node.has-color {
+  background: var(--mm-node-bg);
+  color: var(--mm-node-fg);
+}
+
+.gg-mm-node:hover:not(.is-selected):not(.is-editing) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mm-selection) 40%, transparent);
+}
+.gg-mm-node.is-selected {
+  box-shadow: 0 0 0 2px var(--mm-bg), 0 0 0 4px var(--mm-selection);
+}
+.gg-mm-node.is-editing {
+  box-shadow: 0 0 0 2px var(--mm-bg), 0 0 0 4px var(--mm-selection);
+}
+
+.mm-label {
+  display: inline;
+  min-width: 1ch;
+  outline: none;
+}
+.gg-mm-node.is-editing .mm-label {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  white-space: pre-wrap;
+  min-width: 2em;
+}
+.mm-label strong { font-weight: 700; }
+.mm-label code {
+  font-family: var(--font-monospace, ui-monospace, Menlo, monospace);
+  font-size: 0.9em;
+  padding: 0 0.3em;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.18);
+}
+.mm-label mark {
+  background: rgba(255, 210, 0, 0.45);
+  color: inherit;
+  border-radius: 2px;
+}
+.mm-link {
+  color: var(--link-color, var(--mm-selection));
+  text-decoration: none;
+  cursor: pointer;
+}
+.mm-link:hover { text-decoration: underline; }
+.gg-mm-node[data-depth="0"] .mm-link { color: inherit; text-decoration: underline; }
+
+.mm-task {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-right: 0.35em;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  vertical-align: -0.05em;
+  opacity: 0.7;
+}
+.mm-task.is-done {
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.mm-icon {
+  display: inline-flex;
+  flex: none;
+}
+.mm-icon svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mm-note-icon {
+  font-size: 0.95em;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.mm-note-icon:hover { opacity: 1; }
+.mm-note-icon.is-expanded { opacity: 0.9; }
+
+/* 折叠按钮：挂在节点外侧，短线连到节点 */
+.mm-toggle {
+  all: unset;
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translate(10px, -50%);
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mm-toggle-border);
+  border-radius: 50%;
+  background: var(--mm-toggle-bg);
+  color: var(--mm-toggle-fg);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.mm-toggle::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 10px;
+  height: 1.5px;
+  margin-top: -0.75px;
+  background: var(--mm-toggle-border);
+}
+.mm-toggle .mm-icon { font-size: 10px; }
+.mm-toggle:hover {
+  border-color: var(--mm-selection);
+  color: var(--mm-selection);
+}
+.gg-mm-node:hover .mm-toggle,
+.gg-mm-node.is-selected .mm-toggle,
+.mm-toggle.is-folded {
+  opacity: 1;
+}
+.gg-mm-node[data-side="left"] .mm-toggle {
+  left: auto;
+  right: 100%;
+  transform: translate(-10px, -50%);
+}
+.gg-mm-node[data-side="left"] .mm-toggle::before {
+  right: auto;
+  left: 100%;
+}
+.gg-mm-node.is-underline .mm-toggle { top: 100%; }
+
+/* ---------- 彩虹主题 ---------- */
+
+.gg-mm-node[data-branch="0"] { --mm-branch: var(--mm-branch-0); }
+.gg-mm-node[data-branch="1"] { --mm-branch: var(--mm-branch-1); }
+.gg-mm-node[data-branch="2"] { --mm-branch: var(--mm-branch-2); }
+.gg-mm-node[data-branch="3"] { --mm-branch: var(--mm-branch-3); }
+.gg-mm-node[data-branch="4"] { --mm-branch: var(--mm-branch-4); }
+.gg-mm-node[data-branch="5"] { --mm-branch: var(--mm-branch-5); }
+
+.gg-mm-root[data-branch-colors="true"] .gg-mm-node[data-depth="1"] {
+  background: var(--mm-branch);
+  color: var(--mm-branch-fg);
+}
+.gg-mm-root[data-branch-colors="true"] .gg-mm-node.has-color {
+  background: var(--mm-node-bg);
+  color: var(--mm-node-fg);
+}
+/* 底下那条线由连线画（见 canvas.ts 的 tail），这里只留出位置 */
+.gg-mm-node.is-underline {
+  background: transparent;
+  color: var(--text-normal, #1f1f1f);
+  border: none;
+  border-radius: 0;
+  padding: 2px 6px 5px;
+}
+.gg-mm-node.is-underline.is-selected,
+.gg-mm-node.is-underline.is-editing {
+  border-radius: 4px;
+}
+
+/* ---------- 工具栏 ---------- */
+
+.mm-toolbar {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  cursor: default;
+}
+.mm-tool {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-muted, #666);
+  cursor: pointer;
+}
+.mm-tool .mm-icon { font-size: 16px; }
+.mm-tool:hover {
+  background: var(--background-modifier-hover, #f0f0f0);
+  color: var(--text-normal, #1f1f1f);
+}
+.mm-tool.is-active {
+  color: var(--mm-selection);
+  background: color-mix(in srgb, var(--mm-selection) 12%, transparent);
+}
+.mm-zoom-label {
+  width: auto;
+  min-width: 40px;
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.mm-tool-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--background-modifier-border, #e3e3e3);
+}
+
+/* ---------- 备注弹层 ---------- */
+
+.mm-popover {
+  position: absolute;
+  z-index: 3;
+  max-width: 360px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  color: var(--text-normal, #1f1f1f);
+  font-size: 13px;
+  line-height: 1.55;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: auto;
+}
+/* 查看备注：默认更大一些，右下角可以拖动改大小（拖过的尺寸会记住） */
+.mm-popover.is-view {
+  max-width: min(520px, calc(100% - 16px));
+  max-height: min(480px, calc(100% - 16px));
+  min-width: 160px;
+  min-height: 48px;
+  box-sizing: border-box;
+  resize: both;
+}
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) img { max-width: 100%; height: auto; cursor: zoom-in; -webkit-user-drag: none; }
+.mm-popover-body.is-plain { white-space: pre-wrap; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) { font-size: 13px; line-height: 1.55; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) > :first-child { margin-top: 0; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) > :last-child { margin-bottom: 0; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) p { margin: 0 0 0.5em; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) ul,
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) ol { margin: 0.2em 0 0.5em; padding-left: 1.4em; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) li { margin: 0.1em 0; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) li > p { margin: 0; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) h1,
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) h2,
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) h3,
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) h4 { margin: 0.5em 0 0.25em; font-size: 1.05em; font-weight: 600; line-height: 1.4; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) pre { margin: 0.4em 0; padding: 6px 8px; font-size: 12px; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) blockquote { margin: 0.3em 0; padding: 0 0 0 0.8em; border-left: 2px solid var(--background-modifier-border, #ddd); }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) .callout { margin: 0.3em 0; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) table { font-size: 12px; }
+.gg-mm-root :is(.mm-popover-body, .mm-note-card-body) img { max-width: 100%; }
+
+/* ---------- 代码块嵌入 ---------- */
+
+.mm-codeblock {
+  position: relative;
+  height: 320px;
+  margin: 8px 0;
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ---------- v2：多选、拖拽、节点工具栏、备注编辑 ---------- */
+
+.mm-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+.mm-drop-indicator {
+  position: absolute;
+  display: none;
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--mm-selection);
+  box-shadow: 0 0 0 2px var(--mm-bg);
+}
+.gg-mm-node.is-dragging { opacity: 0.35; }
+.gg-mm-node.is-drop-target {
+  box-shadow: 0 0 0 2px var(--mm-bg), 0 0 0 4px var(--mm-selection);
+  filter: brightness(0.96);
+}
+/* 多个节点一起拖时，幽灵节点右上角的数量角标 */
+.mm-ghost-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: var(--mm-selection);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+.mm-ghost {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.85;
+  transform-origin: 0 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+.gg-mm-root.is-dragging-node,
+.gg-mm-root.is-dragging-node .gg-mm-node { cursor: grabbing; }
+
+.mm-marquee {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--mm-selection);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--mm-selection) 10%, transparent);
+  pointer-events: none;
+}
+
+.mm-nodebar {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 4px;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 5px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: default;
+}
+.mm-nodebar.is-hidden { display: none; }
+.mm-nodebar-group { display: flex; align-items: center; gap: inherit; }
+.mm-nodebar.is-wrapped .mm-tool-sep { display: none; }
+.mm-nodebar .mm-tool {
+  width: 24px;
+  height: 24px;
+}
+.mm-nodebar .mm-tool .mm-icon { font-size: 15px; }
+.mm-swatch {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--swatch, transparent);
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  color: var(--text-muted, #666);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.mm-swatch:hover { transform: scale(1.2); }
+.mm-swatch .mm-icon { font-size: 13px; }
+
+.mm-note-editor {
+  display: block;
+  width: 300px;
+  max-width: 70vw;
+  min-height: 64px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: 13px/1.55 var(--mm-font);
+  resize: vertical;
+}
+/* 从查看切过来的编辑框：外框沿用查看窗口的大小，文字区铺满，还能继续拖右下角 */
+.mm-popover.is-sized {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 160px;
+  min-height: 48px;
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  resize: both;
+}
+.mm-popover.is-sized .mm-note-editor { flex: 1; width: auto; max-width: none; min-height: 0; resize: none; }
+/* 分栏预览：左边写、右边实时渲染；弹窗窄于 460px 时改成上下排 */
+.mm-popover.has-preview { container-type: inline-size; overflow: hidden; }
+.mm-note-split { flex: 1; display: flex; gap: 12px; min-height: 0; }
+.mm-note-split > .mm-note-editor { flex: 1 1 0; width: auto; max-width: none; min-width: 0; min-height: 0; resize: none; }
+.mm-note-preview {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding-left: 12px;
+  border-left: 1px solid var(--background-modifier-border, #e3e3e3);
+}
+@container (max-width: 460px) {
+  .mm-note-split { flex-direction: column; gap: 8px; }
+  .mm-note-preview { padding-left: 0; padding-top: 8px; border-left: none; border-top: 1px solid var(--background-modifier-border, #e3e3e3); }
+}
+.mm-popover-edit {
+  all: unset;
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--mm-selection);
+  cursor: pointer;
+}
+.mm-popover-edit:hover { text-decoration: underline; }
+
+/* .xmind 只读视图的工作表切换 */
+/* .xmind 里有插件不支持的内容时的提示条 */
+.mm-xmind-lost {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+  max-width: min(420px, calc(100% - 24px));
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: var(--font-ui-small, 13px);
+  line-height: 1.45;
+  color: var(--text-muted, #666);
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.mm-sheets {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.mm-sheets button {
+  all: unset;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted, #666);
+  cursor: pointer;
+}
+.mm-sheets button.is-active {
+  color: var(--mm-selection);
+  background: color-mix(in srgb, var(--mm-selection) 12%, transparent);
+}
+
+/* rainbow 主题深色模式：分支色本身已压暗，主主题改用浅色文字 */
+.theme-dark .gg-mm-root[data-theme="rainbow"] .gg-mm-node[data-depth="1"] { color: #f5f5f5; }
+.theme-dark .gg-mm-root[data-theme="rainbow"] .gg-mm-node[data-depth="1"] .mm-link { color: inherit; text-decoration: underline; }
+
+/* ---------- 压过 Obsidian 的 button:not(.clickable-icon) 默认样式 ----------
+   那条规则的优先级是 (0,1,1)，比单个类名高，会把色板、工具栏、折叠徽章的背景和阴影都改掉。 */
+.gg-mm-root button.mm-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  border-radius: 50%;
+  background: var(--swatch, transparent);
+  box-shadow: none;
+  font-size: 12px;
+}
+.gg-mm-root button.mm-swatch:hover {
+  background: var(--swatch, transparent);
+  transform: scale(1.2);
+}
+.gg-mm-root button.mm-tool {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted, #666);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+}
+.gg-mm-root button.mm-tool:hover {
+  background: var(--background-modifier-hover, #f0f0f0);
+  color: var(--text-normal, #1f1f1f);
+}
+.gg-mm-root button.mm-tool.is-active {
+  color: var(--mm-selection);
+  background: color-mix(in srgb, var(--mm-selection) 12%, transparent);
+}
+.gg-mm-root button.mm-zoom-label {
+  width: auto;
+  min-width: 40px;
+  padding: 0 4px;
+}
+.gg-mm-root .mm-nodebar button.mm-tool {
+  width: 24px;
+  height: 24px;
+}
+.gg-mm-root button.mm-toggle {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--mm-toggle-border);
+  border-radius: 50%;
+  background: var(--mm-toggle-bg);
+  box-shadow: none;
+  color: var(--mm-toggle-fg);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+}
+.gg-mm-root button.mm-toggle:hover {
+  background: var(--mm-toggle-bg);
+  border-color: var(--mm-selection);
+  color: var(--mm-selection);
+}
+.gg-mm-root button.mm-popover-edit {
+  height: auto;
+  padding: 0;
+  margin: 8px 0 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--mm-selection);
+  font-size: 12px;
+}
+.gg-mm-root .mm-sheets button {
+  height: auto;
+  padding: 3px 10px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted, #666);
+  font-size: 12px;
+}
+.gg-mm-root .mm-sheets button:hover {
+  background: var(--background-modifier-hover, #f0f0f0);
+}
+.gg-mm-root .mm-sheets button.is-active {
+  color: var(--mm-selection);
+  background: color-mix(in srgb, var(--mm-selection) 12%, transparent);
+}
+
+/* ---------- 嵌入代码块的编辑态 ---------- */
+.gg-mm-root .mm-tool.is-hidden,
+.gg-mm-root .mm-tool-sep.is-hidden { display: none; }
+.mm-codeblock.is-editable { border-color: color-mix(in srgb, var(--interactive-accent, #155dff) 45%, var(--background-modifier-border, #e3e3e3)); }
+/* 实时预览里 Obsidian 会给代码块画一圈悬停框，再叠一层自己的边框就成了两道线；这里只留 Obsidian 那圈。
+   编辑开关看工具栏上的 ✓ 按钮 */
+.cm-preview-code-block .mm-codeblock,
+.cm-preview-code-block .mm-codeblock.is-editable { border-color: transparent; }
+
+/* ---------- 搜索 ---------- */
+
+.gg-mm-search {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: default;
+}
+.gg-mm-root input.gg-mm-search-input {
+  width: 180px;
+  height: 26px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  color: var(--text-normal, #1f1f1f);
+  font: 13px/1 var(--mm-font);
+}
+.mm-search-count {
+  min-width: 36px;
+  padding: 0 4px;
+  color: var(--text-muted, #666);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.gg-mm-search .mm-tool { width: 24px; height: 24px; }
+.gg-mm-node.is-match { box-shadow: 0 0 0 2px color-mix(in srgb, #f5b400 70%, transparent); }
+.gg-mm-node.is-current-match,
+.gg-mm-node.is-current-match.is-selected { box-shadow: 0 0 0 2px var(--mm-bg), 0 0 0 4px #f5b400; }
+
+/* ---------- 折叠菜单 ---------- */
+
+/* 编辑节点时 [[ 的链接候选 */
+.gg-mm-root .mm-link-suggest { min-width: 220px; max-width: 360px; max-height: 320px; overflow-y: auto; overscroll-behavior: contain; z-index: 6; }
+.mm-link-suggest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: var(--mm-font);
+}
+.mm-link-suggest-item:hover { background: var(--background-modifier-hover, rgba(0, 0, 0, 0.05)); }
+.mm-link-suggest-item.is-active { background: var(--background-modifier-active-hover, rgba(21, 93, 255, 0.1)); }
+.mm-link-suggest-name { font-size: 14px; color: var(--text-normal, #1f1f1f); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mm-link-suggest-folder { font-size: 11.5px; color: var(--text-faint, #999); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mm-menu {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.gg-mm-root button.mm-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  padding: 6px 12px 6px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal, #1f1f1f);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+/* 左侧固定一条勾选位，勾出现在同一列，标签永远对齐 */
+.gg-mm-root button.mm-menu-item::before {
+  content: "";
+  flex: none;
+  width: 16px;
+  margin-right: 4px;
+  color: var(--mm-selection);
+  font-size: 12px;
+  text-align: center;
+}
+.gg-mm-root button.mm-menu-item:hover { background: var(--background-modifier-hover, #f0f0f0); }
+
+/* ---------- 触屏：放大点击目标 ---------- */
+
+@media (pointer: coarse) {
+  .gg-mm-root button.mm-toggle { width: 22px; height: 22px; font-size: 12px; transform: translate(12px, -50%); }
+  .gg-mm-node[data-side="left"] .mm-toggle { transform: translate(-12px, -50%); }
+  .mm-toggle::before { width: 12px; }
+  .gg-mm-node:not(:hover) .mm-toggle { opacity: 1; }
+  .gg-mm-root button.mm-tool { width: 34px; height: 34px; }
+  .gg-mm-root .mm-nodebar button.mm-tool { width: 30px; height: 30px; }
+  .gg-mm-root button.mm-swatch { width: 24px; height: 24px; }
+  .mm-nodebar { gap: 5px; padding: 6px; }
+  .gg-mm-root button.mm-menu-item { padding: 10px 12px; font-size: 14px; }
+}
+
+/* ---------- 向下 / 树形结构 ---------- */
+
+.gg-mm-node[data-side="down"] .mm-toggle {
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 10px);
+}
+.gg-mm-node[data-side="down"] .mm-toggle::before {
+  right: auto;
+  left: 50%;
+  top: auto;
+  bottom: 100%;
+  width: 1.5px;
+  height: 10px;
+  margin: 0 0 0 -0.75px;
+}
+.mm-drop-indicator.is-vertical { width: 4px; height: 40px; }
+.gg-mm-root button.mm-menu-item.is-active { color: var(--mm-selection); }
+.gg-mm-root button.mm-menu-item.is-active::before { content: "✓"; }
+
+/* ---------- 节点 ⇄ 笔记链接 ---------- */
+.gg-mm-node.is-linked .mm-label .mm-link { text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
+.mm-picker-new { color: var(--interactive-accent, #155dff); }
+
+/* ---------- 公式与图片 ---------- */
+.mm-label .mm-math { display: inline-block; vertical-align: middle; }
+.mm-label .mm-math-fallback { opacity: 0.8; }
+.mm-label img.mm-img {
+  display: block;
+  max-width: 240px;
+  max-height: 180px;
+  margin: 2px auto;
+  border-radius: 6px;
+  object-fit: contain;
+  pointer-events: none;
+}
+/* 有明确宽度的图片不受缩略图上限约束；含图片的节点也不受文字换行宽度限制 */
+.mm-label img.mm-img.has-size { max-width: none; max-height: none; }
+.gg-mm-node.has-image { align-items: flex-start; max-width: none; }
+.gg-mm-node.has-image .mm-label { display: block; text-align: center; }
+.gg-mm-node[data-depth="0"] img.mm-img { max-width: 320px; }
+/* PDF 截区（PDF++ 画的裁切图）：外面包着 MarkdownRenderer 的段落和嵌入容器，去掉它们的边距，
+   鼠标事件一律交给节点（和普通图片一样按坐标判断点没点在图上） */
+.mm-label .mm-pdf-crop { display: block; position: relative; pointer-events: none; }
+/* 截区角上的「跳到 PDF」：鼠标移到节点上或选中时出现 */
+.mm-label .mm-pdf-jump {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  pointer-events: auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  line-height: 22px;
+  cursor: pointer;
+  box-shadow: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.gg-mm-node:hover .mm-pdf-jump, .gg-mm-node.is-selected .mm-pdf-jump { opacity: 1; }
+.mm-label .mm-pdf-jump:hover { background: rgba(0, 0, 0, 0.75); }
+.mm-label .mm-pdf-crop p { margin: 0; }
+.mm-label .mm-pdf-crop .internal-embed { display: block; margin: 0; }
+
+/* <iframe> 嵌入：视频这类东西自己要吃走鼠标事件，所以节点留一圈边距当把手，
+   不然整个节点被 iframe 盖住，既选不中也拖不动 */
+.mm-frame-box {
+  position: relative;
+  display: block;
+  width: max-content;
+  margin: 2px auto;
+}
+.mm-label iframe.mm-frame {
+  display: block;
+  border: 0;
+  border-radius: 6px;
+  background: #000;
+}
+/* 挡板：跨域 iframe 里点了哪儿看不见，默认整块挡住，双击才放开 */
+.mm-frame-shield {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+/* 激活按钮：跟双击画面等效，多一条不用猜的路。
+   Obsidian 的 button:not(.clickable-icon) 会盖掉单类名按钮样式，所以带上 .gg-mm-root */
+.gg-mm-root button.mm-frame-activate {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  padding: 3px 10px;
+  height: auto;
+  width: auto;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.66);
+  box-shadow: none;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.gg-mm-root button.mm-frame-activate:hover { background: rgba(0, 0, 0, 0.82); }
+/* 悬停画面时出现；节点被选中时常驻，免得完全发现不了 */
+.mm-frame-shield:hover .mm-frame-activate,
+.gg-mm-node.is-selected .mm-frame-activate { opacity: 1; }
+.gg-mm-node.is-frame-live .mm-frame-shield { display: none; }
+/* 放开之后加一圈虚线，免得不知道现在点下去是会跳走的。
+   用 outline 不用 box-shadow —— 选中态已经占了 box-shadow，两者要能叠加 */
+.gg-mm-node.is-frame-live {
+  outline: 2px dashed var(--mm-selection);
+  outline-offset: 3px;
+}
+.gg-mm-node.has-frame {
+  align-items: flex-start;
+  max-width: none;
+  padding: 10px;
+}
+.gg-mm-node.has-frame .mm-label { display: block; text-align: center; }
+
+/* ---------- 大纲面板 ---------- */
+
+.mm-view-content { display: flex; flex-direction: row; }
+.mm-canvas-host { flex: 1 1 auto; min-width: 0; height: 100%; position: relative; }
+.mm-outline-host { flex: none; width: 0; height: 100%; overflow: hidden; }
+.mm-view-content.has-outline .mm-outline-host { width: 260px; border-right: 1px solid var(--background-modifier-border, #e3e3e3); }
+.mm-outline {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  outline: none;
+  background: var(--background-secondary, #f6f6f7);
+  font-family: var(--font-interface, system-ui, sans-serif);
+  font-size: 13px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mm-outline:focus-within { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--interactive-accent, #155dff) 35%, transparent); }
+.mm-outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 12px;
+  color: var(--text-muted, #666);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.mm-outline button.mm-outline-close { width: 22px; height: 22px; font-size: 16px; line-height: 1; border: none; background: transparent; box-shadow: none; color: var(--text-muted, #666); border-radius: 5px; cursor: pointer; }
+.mm-outline button.mm-outline-close:hover { background: var(--background-modifier-hover, #e8e8ea); }
+.mm-outline-list { flex: 1 1 auto; overflow: auto; padding: 0 6px 12px; }
+.mm-outline-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 2px 6px 2px calc(6px + var(--depth, 0) * 14px);
+  border-radius: 5px;
+  color: var(--text-normal, #1f1f1f);
+  cursor: default;
+  white-space: nowrap;
+}
+.mm-outline-row:hover { background: var(--background-modifier-hover, #ececee); }
+.mm-outline-row.is-selected { background: color-mix(in srgb, var(--interactive-accent, #155dff) 14%, transparent); color: var(--text-normal, #1f1f1f); }
+.mm-outline-chevron { flex: none; width: 14px; color: var(--text-faint, #999); font-size: 11px; text-align: center; cursor: pointer; transition: transform 0.12s ease; }
+.mm-outline-chevron.is-folded { transform: rotate(-90deg); }
+.mm-outline-chevron:hover { color: var(--text-normal, #1f1f1f); }
+.mm-outline-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--mm-node-bg, #ccc); }
+.mm-outline-dot[data-color="red"] { background: var(--mm-c-red, #f9a3a3); }
+.mm-outline-dot[data-color="orange"] { background: var(--mm-c-orange, #fbc98d); }
+.mm-outline-dot[data-color="yellow"] { background: var(--mm-c-yellow, #f7e48e); }
+.mm-outline-dot[data-color="green"] { background: var(--mm-c-green, #a3e5a2); }
+.mm-outline-dot[data-color="teal"] { background: var(--mm-c-teal, #93e3d6); }
+.mm-outline-dot[data-color="blue"] { background: var(--mm-c-blue, #8edbf7); }
+.mm-outline-dot[data-color="purple"] { background: var(--mm-c-purple, #d4b5f5); }
+.mm-outline-dot[data-color="pink"] { background: var(--mm-c-pink, #f8b8da); }
+.mm-outline-dot[data-color="gray"] { background: var(--mm-c-gray, #dcdce2); }
+.mm-outline-text { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; outline: none; }
+/* 设置「大纲显示完整标题」：长标题换行，箭头和色点贴着第一行 */
+body.gg-mm-outline-wrap .mm-outline-row { white-space: normal; align-items: flex-start; padding-top: 3px; padding-bottom: 3px; }
+body.gg-mm-outline-wrap .mm-outline-text { overflow: visible; overflow-wrap: anywhere; }
+body.gg-mm-outline-wrap .mm-outline-row > :not(.mm-outline-text) { margin-top: 0.3em; }
+.mm-outline-text .mm-math { font-size: 0.95em; }
+.mm-outline-row[style*="--depth: 0"] .mm-outline-text { font-weight: 600; }
+.mm-outline-row[style*="--depth: 1"] .mm-outline-text { font-weight: 500; }
+.mm-outline-row.is-editing .mm-outline-text { white-space: pre-wrap; user-select: text; -webkit-user-select: text; background: var(--background-primary, #fff); border-radius: 3px; padding: 0 3px; }
+.mm-outline-note { flex: none; color: var(--text-faint, #999); font-size: 11px; }
+
+/* ---------- 工具栏位置 ---------- */
+
+/* 主视图里底部工具栏抬高，避开 Obsidian 右下角的状态栏 */
+.gg-mm-root:not(.is-embedded) .mm-toolbar[data-pos="bottom"] { bottom: var(--mm-bottom-inset, 44px); }
+/* 窄屏放不下所有按钮时横向滑动，不被截掉 */
+.mm-toolbar[data-pos="bottom"],
+.mm-toolbar[data-pos="top"] { max-width: calc(100% - 24px); overflow-x: auto; scrollbar-width: none; }
+.mm-toolbar[data-pos="left"],
+.mm-toolbar[data-pos="right"] { max-height: calc(100% - 24px); overflow-y: auto; scrollbar-width: none; }
+.mm-toolbar::-webkit-scrollbar { display: none; }
+.mm-toolbar > * { flex-shrink: 0; }
+.mm-toolbar[data-pos="top"] { top: 12px; bottom: auto; }
+.mm-toolbar[data-pos="left"],
+.mm-toolbar[data-pos="right"] {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  flex-direction: column;
+  padding: 5px 4px;
+}
+.mm-toolbar[data-pos="left"] { left: 12px; right: auto; }
+.mm-toolbar[data-pos="right"] { right: 12px; }
+.mm-toolbar[data-pos="left"] .mm-tool-sep,
+.mm-toolbar[data-pos="right"] .mm-tool-sep { width: 18px; height: 1px; margin: 4px 0; }
+.mm-toolbar[data-pos="left"] .mm-zoom-label,
+.mm-toolbar[data-pos="right"] .mm-zoom-label { min-width: 0; width: 34px; padding: 0; font-size: 11px; }
+/* 工具栏在上方时，搜索栏让到下方 */
+.gg-mm-root[data-toolbar="top"] .gg-mm-search { top: auto; bottom: 12px; }
+.gg-mm-root:not(.is-embedded)[data-toolbar="top"] .gg-mm-search { bottom: var(--mm-bottom-inset, 44px); }
+/* 垂直工具栏靠右时，搜索栏往左让一点，避免高窗口里挨着 */
+.gg-mm-root[data-toolbar="right"] .gg-mm-search { right: 60px; }
+
+/* ---------- 图片缩放手柄 ---------- */
+/* 手动宽度：节点不再受最大宽度限制，文字按设定宽度换行 */
+.gg-mm-root .gg-mm-node.has-width { max-width: none; }
+.mm-width-handle {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: -5px;
+  width: 8px;
+  height: 22px;
+  max-height: calc(100% - 8px);
+  min-height: 12px;
+  box-sizing: border-box;
+  transform: translateY(-50%);
+  border: 2px solid var(--mm-selection);
+  border-radius: 4px;
+  background: var(--mm-bg);
+  cursor: ew-resize;
+  touch-action: none;
+}
+.mm-width-handle.is-left { right: auto; left: -5px; }
+@media (pointer: coarse) { .mm-width-handle { width: 14px; right: -8px; } .mm-width-handle.is-left { left: -8px; } }
+
+/* 双击图片看大图 */
+.mm-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-modal, 50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  cursor: zoom-out;
+}
+.mm-lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.mm-img-handle {
+  position: absolute;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border: 2px solid var(--mm-selection);
+  border-radius: 3px;
+  background: var(--mm-bg);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+.mm-img-handle:hover { transform: scale(1.2); }
+@media (pointer: coarse) { .mm-img-handle { width: 20px; height: 20px; } }
+
+/* ---------- 聚焦面包屑 ---------- */
+.mm-crumbs {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--background-primary, #fff);
+  border: 1px solid var(--background-modifier-border, #e3e3e3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+}
+.gg-mm-root:not(.is-embedded).has-outline .mm-crumbs { left: 12px; }
+.gg-mm-root button.mm-crumb {
+  height: auto;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted, #666);
+  font-size: 12px;
+  cursor: pointer;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gg-mm-root button.mm-crumb:hover { background: var(--background-modifier-hover, #f0f0f0); color: var(--text-normal, #1f1f1f); }
+.gg-mm-root button.mm-crumb.is-current { color: var(--text-normal, #1f1f1f); font-weight: 600; }
+.mm-crumb-sep { color: var(--text-faint, #aaa); }
+.gg-mm-root[data-toolbar="top"] .mm-crumbs { top: auto; bottom: 12px; }
+
+/* ---------- 标签、标记、任务 ---------- */
+.mm-label a.mm-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mm-selection) 12%, transparent);
+  color: var(--mm-selection);
+  font-size: 0.85em;
+  text-decoration: none;
+  cursor: pointer;
+  vertical-align: baseline;
+}
+.mm-label a.mm-tag:hover { background: color-mix(in srgb, var(--mm-selection) 22%, transparent); }
+.gg-mm-node[data-depth="0"] .mm-label a.mm-tag { background: rgba(255, 255, 255, 0.2); color: inherit; }
+.mm-markers { margin-right: 0.35em; font-size: 1.05em; letter-spacing: 0.15em; }
+.mm-task { cursor: pointer; }
+.mm-task:hover { opacity: 1; }
+
+/* ---------- 标记选择器 ---------- */
+.mm-marker-picker { gap: 4px; padding: 8px; }
+.mm-marker-row { display: flex; align-items: center; gap: 3px; }
+.mm-marker-label { width: 44px; color: var(--text-muted, #666); font-size: 11px; }
+.gg-mm-root button.mm-marker-btn {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gg-mm-root button.mm-marker-btn:hover { background: var(--background-modifier-hover, #f0f0f0); }
+.gg-mm-root button.mm-marker-btn.is-active { border-color: var(--mm-selection); background: color-mix(in srgb, var(--mm-selection) 12%, transparent); }
+.mm-marker-picker .mm-menu-item { margin-top: 4px; justify-content: center; font-size: 12px; color: var(--text-muted, #666); }
+.mm-marker-picker .mm-menu-item::before { display: none; }
+
+
+/* ==========================================================================
+   主题。每个主题只覆盖需要的变量；行为（连线形状、分支色、下划线、间距）在 theme.ts。
+   深色模式的覆盖跟在各自主题后面。
+   ========================================================================== */
+
+/* ---------- 彩虹：中心主题无底色，主主题用分支色 ---------- */
+.gg-mm-root[data-theme="rainbow"] {
+  --mm-root-bg: transparent;
+  --mm-root-fg: var(--text-normal, #1f1f1f);
+  --mm-root-size: 28px;
+  --mm-root-weight: 700;
+  --mm-root-pad: 12px 20px;
+  --mm-main-pad: 8px 16px;
+  --mm-main-radius: 10px;
+  --mm-main-size: 16px;
+  --mm-main-weight: 500;
+}
+
+/* ---------- 商务：深蓝中心，实心蓝主主题，直角折线 ---------- */
+.gg-mm-root[data-theme="business"] {
+  --mm-line: #64748b;
+  --mm-root-bg: #1e3a5f;
+  --mm-root-fg: #ffffff;
+  --mm-main-bg: #2b6cb0;
+  --mm-main-fg: #ffffff;
+  --mm-node-bg: #eef2f7;
+  --mm-node-fg: #1a202c;
+  --mm-root-radius: 4px;
+  --mm-main-radius: 4px;
+  --mm-node-radius: 3px;
+  --mm-root-size: 24px;
+  --mm-main-size: 16px;
+  --mm-node-size: 13px;
+  --mm-main-weight: 500;
+  --mm-toggle-border: #94a3b8;
+  --mm-edge-w1: 2px;
+  --mm-edge-w2: 1.5px;
+  --mm-edge-w3: 1.25px;
+}
+.theme-dark .gg-mm-root[data-theme="business"] {
+  --mm-line: #7d8da3;
+  --mm-root-bg: #24405f;
+  --mm-main-bg: #2c5282;
+  --mm-node-bg: #232a35;
+  --mm-node-fg: #e2e8f0;
+}
+
+/* ---------- 暖阳：橙调，大圆角 ---------- */
+.gg-mm-root[data-theme="warm"] {
+  --mm-line: #a3714f;
+  --mm-root-bg: #c2410c;
+  --mm-root-fg: #fff7ed;
+  --mm-main-bg: #fed7aa;
+  --mm-main-fg: #7c2d12;
+  --mm-node-bg: #fff7ed;
+  --mm-node-fg: #431407;
+  --mm-root-radius: 18px;
+  --mm-main-radius: 14px;
+  --mm-node-radius: 10px;
+  --mm-root-pad: 16px 30px;
+  --mm-main-pad: 9px 18px;
+  --mm-node-pad: 6px 12px;
+  --mm-toggle-border: #c08457;
+  --mm-toggle-fg: #8a5a3b;
+}
+.theme-dark .gg-mm-root[data-theme="warm"] {
+  --mm-line: #c08d6a;
+  --mm-root-bg: #9a3412;
+  --mm-main-bg: #57320f;
+  --mm-main-fg: #fed7aa;
+  --mm-node-bg: #33241a;
+  --mm-node-fg: #fde3c7;
+}
+
+/* ---------- 极简：黑白描边，发丝线 ---------- */
+.gg-mm-root[data-theme="mono"] {
+  --mm-line: #a1a1aa;
+  --mm-root-bg: #18181b;
+  --mm-root-fg: #fafafa;
+  --mm-main-bg: transparent;
+  --mm-main-fg: #18181b;
+  --mm-node-bg: transparent;
+  --mm-node-fg: #27272a;
+  --mm-node-border: 1px solid #d4d4d8;
+  --mm-root-radius: 2px;
+  --mm-main-radius: 2px;
+  --mm-node-radius: 2px;
+  --mm-root-size: 22px;
+  --mm-main-size: 15px;
+  --mm-node-size: 13px;
+  --mm-main-weight: 600;
+  --mm-root-pad: 14px 26px;
+  --mm-edge-w1: 1.5px;
+  --mm-edge-w2: 1.25px;
+  --mm-edge-w3: 1px;
+  --mm-toggle-border: #a1a1aa;
+}
+.theme-dark .gg-mm-root[data-theme="mono"] {
+  --mm-line: #71717a;
+  --mm-root-bg: #fafafa;
+  --mm-root-fg: #18181b;
+  --mm-main-fg: #f4f4f5;
+  --mm-node-fg: #d4d4d8;
+  --mm-node-border: 1px solid #3f3f46;
+  --mm-toggle-border: #52525b;
+}
+
+/* ---------- 森林：绿调分支 ---------- */
+.gg-mm-root[data-theme="forest"] {
+  --mm-line: #4d7c0f;
+  --mm-root-bg: #14532d;
+  --mm-root-fg: #ecfdf5;
+  --mm-node-bg: #f0fdf4;
+  --mm-node-fg: #14532d;
+  --mm-branch-fg: #14532d;
+  --mm-root-radius: 12px;
+  --mm-main-radius: 10px;
+  --mm-node-radius: 8px;
+  --mm-branch-0: #a7e0b0;
+  --mm-branch-1: #bfe5a0;
+  --mm-branch-2: #93ddc8;
+  --mm-branch-3: #d9e8a0;
+  --mm-branch-4: #a3d9d0;
+  --mm-branch-5: #c7e3b8;
+  --mm-toggle-border: #86a86b;
+}
+.theme-dark .gg-mm-root[data-theme="forest"] {
+  --mm-line: #7aa04a;
+  --mm-root-bg: #1a4d33;
+  --mm-node-bg: #1f2c22;
+  --mm-node-fg: #d6f0dc;
+  --mm-branch-fg: #0f2d1a;
+  --mm-branch-0: #6aa878;
+  --mm-branch-1: #86ab68;
+  --mm-branch-2: #5ea48f;
+  --mm-branch-3: #9aab63;
+  --mm-branch-4: #6ba299;
+  --mm-branch-5: #8aa87e;
+}
+
+/* ---------- 线条：除中心主题外都是纯文字，统一细度的圆角折线 ---------- */
+.gg-mm-root[data-theme="line"] {
+  --mm-line: #52525b;
+  --mm-root-bg: #e4e4e7;
+  --mm-root-fg: #18181b;
+  --mm-root-border: 1px solid #a1a1aa;
+  --mm-main-bg: transparent;
+  --mm-main-fg: var(--text-normal, #1f1f1f);
+  --mm-node-bg: transparent;
+  --mm-node-fg: var(--text-normal, #1f1f1f);
+  --mm-node-border: none;
+  --mm-root-radius: 8px;
+  --mm-main-radius: 4px;
+  --mm-node-radius: 4px;
+  --mm-root-pad: 12px 24px;
+  --mm-main-pad: 4px 10px;
+  --mm-node-pad: 4px 9px;
+  --mm-root-size: 22px;
+  --mm-root-weight: 500;
+  --mm-main-size: 15px;
+  --mm-main-weight: 400;
+  --mm-node-size: 14px;
+  --mm-edge-w1: 1.5px;
+  --mm-edge-w2: 1.5px;
+  --mm-edge-w3: 1.5px;
+  --mm-toggle-border: #a1a1aa;
+}
+.theme-dark .gg-mm-root[data-theme="line"] {
+  --mm-line: #d4d4d8;
+  --mm-root-bg: #52525b;
+  --mm-root-fg: #fafafa;
+  --mm-root-border: 1px solid #d4d4d8;
+  --mm-toggle-border: #8a8a94;
+}
+
+/* ---------- 设置页与图标选择器 ---------- */
+.mm-setting-icon-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-inline-end: 6px;
+  color: var(--text-normal);
+}
+.mm-setting-icon-preview.is-emoji { font-size: 17px; line-height: 1; }
+.mm-setting-icon-value {
+  margin-inline-end: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-monospace, monospace);
+}
+.mm-icon-picker .mm-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mm-icon-picker .mm-icon-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  font-size: 16px;
+  line-height: 1;
+}
+.mm-icon-picker .mm-icon-label { flex: 1 1 auto; }
+.mm-icon-picker .mm-icon-tag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* ---------- 属性面板里的 icon 一行 ---------- */
+.mm-icon-prop-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-inline-end: 6px;
+  color: var(--text-muted);
+  vertical-align: -4px;
+}
+.mm-icon-prop-preview.is-emoji { font-size: 15px; line-height: 1; }
+/* 值里带冒号会被当成 scheme:path，Obsidian 画成外链；这里还原成普通文本 */
+.metadata-property.mm-icon-prop .metadata-property-value .metadata-link-inner {
+  color: var(--text-normal);
+  text-decoration: none;
+  cursor: default;
+  pointer-events: none;
+}
+.metadata-property.mm-icon-prop .metadata-property-value .metadata-link-flair { display: none; }
+
+/* 预览可点，点开图标选择器 */
+.mm-icon-prop-preview {
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+.mm-icon-prop-preview:hover,
+.mm-icon-prop-preview:focus-visible {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  outline: none;
+}
+
+/* 静态时只显示图标本身；点进去编辑（focus-within）再把取值文本露出来 */
+.metadata-property.mm-icon-prop:not(:focus-within) .metadata-property-value > :not(.mm-icon-prop-preview) {
+  display: none;
+}
+/* 值那一格塌成图标宽度后仍要能点进去编辑 */
+.metadata-property.mm-icon-prop .metadata-property-value {
+  min-height: var(--metadata-input-height, 22px);
+}
+
+/* ---------- 自定义主题编辑器 ---------- */
+.modal.mm-theme-modal { width: min(1100px, 94vw); max-width: none; }
+.mm-theme-editor {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  gap: 16px;
+  height: min(620px, 70vh);
+}
+.mm-theme-controls { overflow-y: auto; padding-right: 8px; }
+.mm-theme-controls .setting-item { padding: 8px 0; }
+.mm-theme-section { margin: 14px 0 4px; font-size: var(--font-ui-small, 13px); color: var(--text-muted); }
+.mm-theme-controls input.mm-theme-num { width: 64px; text-align: right; }
+.mm-theme-controls .setting-item-control:has(.mm-theme-num) .slider-value { display: none; }
+.mm-theme-tiers { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.mm-theme-tiers button.is-active { background: var(--interactive-accent); color: var(--text-on-accent); }
+.mm-theme-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.mm-theme-preview-label { position: absolute; left: 10px; top: 8px; z-index: 3; font-size: 12px; color: var(--text-faint); }
+.mm-theme-preview-canvas { position: relative; flex: 1; min-height: 0; }
+/* 预览只能看：不响应点击、双击、右键、拖拽和滚轮，也就不会进编辑、弹菜单 */
+.mm-theme-preview-canvas, .mm-theme-preview-canvas * { pointer-events: none !important; }
+@media (max-width: 760px) {
+  .mm-theme-editor { grid-template-columns: 1fr; height: auto; }
+  .mm-theme-controls { max-height: 45vh; }
+  .mm-theme-preview-canvas { height: 280px; flex: none; }
+}
+.mm-theme-preview .mm-toolbar { display: none; }
+
+/* 右键菜单开着时藏起节点浮动工具栏，关掉菜单再回来 */
+.gg-mm-root.is-menu-open .mm-nodebar { visibility: hidden; }
+
+/* ---------- 背诵模式（只改显示，不写文件） ---------- */
+/* 复习时用不上编辑工具栏，点题目也不让它盖住选项 */
+.gg-mm-root.is-recite .mm-nodebar { visibility: hidden; }
+/* ==高亮== 遮成一道横线，点一下揭开 */
+.gg-mm-root.is-recite .mm-label mark:not(.is-revealed) {
+  color: transparent;
+  background: rgba(127, 127, 127, 0.12);
+  box-shadow: inset 0 -1.5px 0 var(--mm-selection);
+  cursor: pointer;
+}
+.gg-mm-root.is-recite .mm-label mark:not(.is-revealed) * { visibility: hidden; }
+.gg-mm-root.is-recite .mm-label mark.is-revealed { cursor: pointer; }
+/* 选择题：没揭晓时所有选项都像没勾；揭晓后正确的变绿、错误的变淡 */
+.gg-mm-root.is-recite .mm-task { cursor: default; }
+.gg-mm-root.is-recite .gg-mm-node.is-option:not(.is-option-shown) .mm-task.is-done { background: none; opacity: 0.7; }
+.gg-mm-root.is-recite .gg-mm-node.is-option.is-option-shown.is-correct { box-shadow: 0 0 0 2px #2fb344; }
+.gg-mm-root.is-recite .gg-mm-node.is-option.is-option-shown.is-correct .mm-task { background: #2fb344; border-color: #2fb344; opacity: 1; }
+.gg-mm-root.is-recite .gg-mm-node.is-option.is-option-shown:not(.is-correct) { opacity: 0.4; }
+/* 题目上的「单选 / 多选」标签：点它揭晓 / 收起答案 */
+.gg-mm-root:not(.is-recite) .mm-quiz-tag { display: none; }
+.gg-mm-root.is-recite .mm-quiz-tag {
+  flex: none;
+  cursor: pointer;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--mm-selection);
+  background: color-mix(in srgb, var(--mm-selection) 14%, transparent);
+}
+.gg-mm-root.is-recite .mm-quiz-tag:hover { background: color-mix(in srgb, var(--mm-selection) 24%, transparent); }
+.gg-mm-root.is-recite .mm-quiz-tag.is-shown { color: #fff; background: var(--mm-selection); }
+
+/* 答案：节点连同子树盖上一层，答案节点上写提示，点一下揭开；折叠按钮照常能点 */
+.gg-mm-root.is-recite .gg-mm-node.is-answer { cursor: pointer; }
+.gg-mm-root.is-recite .gg-mm-node.is-answer-covered { cursor: pointer; }
+.gg-mm-root.is-recite .gg-mm-node.is-answer-covered > :not(.mm-toggle) { visibility: hidden; }
+.gg-mm-root.is-recite .gg-mm-node.is-answer-covered::before {
+  content: attr(data-answer);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 6px, rgba(127, 127, 127, 0.1) 6px 12px),
+    var(--mm-bg, var(--background-primary));
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.25);
+}
+.gg-mm-root.is-recite :is(.mm-callout, .mm-callout-tail, .mm-note-card, .mm-note-link).is-answer-covered { visibility: hidden; }
+
+/* 设置「嵌入的脑图隐藏工具栏」：阅读模式不显示；编辑模式和白板卡片里鼠标移上来或焦点在图里时才显示。
+   改图的时候（is-editable）也一样，鼠标移开、点到外面就收起来 */
+body.gg-mm-embed-toolbar-autohide .markdown-preview-view .gg-mm-root.is-embedded:not(.is-editable):not(.canvas-node *) .mm-toolbar { display: none; }
+body.gg-mm-embed-toolbar-autohide :is(.markdown-source-view, .canvas-node) .gg-mm-root.is-embedded .mm-toolbar { transition: opacity 0.15s; }
+body.gg-mm-embed-toolbar-autohide :is(.markdown-source-view, .canvas-node) .gg-mm-root.is-embedded:not(:hover):not(:focus-within) .mm-toolbar { opacity: 0; pointer-events: none; }
+
+/* 白板卡片里的嵌入脑图：铺满卡片 */
+.mm-file-embed.mm-in-canvas { height: 100%; }
+.mm-file-embed.mm-in-canvas > .mm-codeblock { height: 100% !important; }
+
+/* 标注：节点旁的圆角气泡，尖角（svg 里的三角形）指向节点；边框和尖角用分支色 */
+.mm-callout {
+  position: absolute;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 240px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--mm-callout-color, var(--mm-line));
+  border-radius: 10px;
+  background: var(--mm-callout-bg, var(--mm-bg, var(--background-primary)));
+  font-family: var(--mm-font);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--mm-callout-fg, inherit);
+  cursor: default;
+  user-select: none;
+  overflow-wrap: anywhere;
+}
+.mm-callout .mm-link { color: var(--link-color, var(--mm-selection)); }
+.mm-callout.is-editing { cursor: text; user-select: text; min-width: 60px; }
+.mm-callout.is-editing .mm-callout-text { white-space: pre-wrap; outline: none; }
+.mm-callout.is-editing .mm-callout-text:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.45;
+}
+/* 隐藏标注时临时浮出的一条：盖在节点上面，带阴影区分 */
+.mm-callout.is-peek {
+  z-index: 5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.mm-callout-tail {
+  fill: var(--mm-callout-color, var(--mm-line));
+  stroke: none;
+}
+.mm-callout-icon {
+  font-size: 0.95em;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.mm-callout-icon:hover { opacity: 1; }
+
+/* 展开的备注：挂在节点下方的框，边框和底色取分支色的淡色；内容超出最大高度时在框里滚动 */
+.mm-note-card {
+  position: absolute;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 80px;
+  max-width: calc(var(--mm-note-max-w, 320px) * var(--mm-font-scale, 1));
+  border: 1px solid color-mix(in srgb, var(--mm-note-color, var(--mm-line)) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mm-note-color, var(--mm-line)) 6%, var(--mm-bg, var(--background-primary, #fff)));
+  color: var(--text-normal, #1f1f1f);
+  font-family: var(--mm-font);
+  font-size: calc(12.5px * var(--mm-font-scale, 1));
+  line-height: 1.55;
+  cursor: default;
+}
+.mm-note-card-body {
+  box-sizing: border-box;
+  max-height: calc(var(--mm-note-max-h, 240px) * var(--mm-font-scale, 1));
+  overflow: auto;
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.gg-mm-root .mm-note-card-body { font-size: inherit; }
+.mm-note-card-body.is-plain { white-space: pre-wrap; }
+.mm-note-card.is-overflow .mm-note-card-body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+/* 右下角的手柄：拖动单独调这一条的宽高，双击恢复默认 */
+.mm-note-card-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  opacity: 0;
+  border-bottom-right-radius: 8px;
+  background: linear-gradient(135deg, transparent 0 55%, color-mix(in srgb, var(--mm-note-color, var(--mm-line)) 70%, transparent) 55% 62%, transparent 62% 72%, color-mix(in srgb, var(--mm-note-color, var(--mm-line)) 70%, transparent) 72% 79%, transparent 79%);
+  transition: opacity 0.12s;
+  touch-action: none;
+}
+.mm-note-card:hover .mm-note-card-resize,
+.mm-note-card.is-resizing .mm-note-card-resize { opacity: 1; }
+.mm-note-card.is-resizing { user-select: none; -webkit-user-select: none; }
+.mm-note-card-fold {
+  all: unset;
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--mm-bg, var(--background-primary, #fff));
+  color: var(--text-muted, #777);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.mm-note-card-fold .mm-icon { font-size: 12px; }
+.mm-note-card:hover .mm-note-card-fold { opacity: 0.85; }
+.mm-note-card-fold:hover { opacity: 1; color: var(--mm-selection); }
+.mm-note-link {
+  fill: none;
+  stroke: var(--mm-note-color, var(--mm-line));
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+/* 「显示隐藏的节点」：带 %%hide%% 的节点半透明、虚线框 */
+.gg-mm-node.is-hidden-node { opacity: 0.45; outline: 1.5px dashed var(--text-faint, #999); outline-offset: 2px; }
+.gg-mm-node.is-hidden-node.is-selected { opacity: 0.75; }
+

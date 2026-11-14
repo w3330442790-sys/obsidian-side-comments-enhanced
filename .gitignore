@@ -17,6 +17,8 @@ main.js
 
 # obsidian
 data.json
+mindmap-settings.json
+state.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store

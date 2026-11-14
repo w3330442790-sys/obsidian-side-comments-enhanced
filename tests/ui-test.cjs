@@ -6,7 +6,7 @@ const esbuild = require('esbuild');
 const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
 fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
-let source = fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8').replace(/from (["'])\.\//g, 'from $1../src/');
+let source = fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8').replace(/from (["'])\.\//g, 'from $1../src/').replace(/from (["'])\.\.\/vendor\/personal-mindmap\/src\/obsidian\/main\1/g, "from '../tests/mindmap-base-stub'");
 fs.writeFileSync(path.join(root, 'artifacts/main-test.ts'), source + '\nexport { SideNoteView, CommentModal };\n');
 esbuild.buildSync({ entryPoints: [path.join(__dirname, 'ui-entry.ts')], bundle: true, outfile: path.join(root, 'artifacts/ui.bundle.js'), platform: 'browser', external: ['buffer'], alias: { obsidian: path.join(__dirname, 'obsidian-mock.ts') }, logLevel: 'warning' });
 const css = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
@@ -181,7 +181,7 @@ const server = http.createServer((req, res) => {
       const result = await page.evaluate(async () => {
         window.files.set('side-note-data/unrelated.json', '{bad');
         window.files.set('side-note-data/foreign.json', JSON.stringify({ other: true }));
-        await window.plugin.loadAllCommentsFromFiles(); await window.plugin.saveData();
+        await window.plugin.loadAllCommentsFromFiles(); await window.plugin.saveToolData();
         return [window.files.get('side-note-data/unrelated.json'), window.files.get('side-note-data/foreign.json')];
       });
       assert.deepEqual(result, ['{bad', '{"other":true}']);
@@ -225,7 +225,7 @@ const server = http.createServer((req, res) => {
       const exists = await page.evaluate(async () => {
         await window.plugin.saveCommentsForSingleFile('note.md');
         window.plugin.comments.splice(0);
-        await window.plugin.saveData();
+        await window.plugin.saveToolData();
         return window.files.has('side-note-data/note.json');
       });
       assert.equal(exists, false);

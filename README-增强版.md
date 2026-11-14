@@ -1,10 +1,10 @@
 # Taube Markdown Tool（原 Side Comments 增强版）
 
-当前版本 **1.6.2**。新增正文拖动调整层级、Markdown 语法工具栏、文字标红、右键工具栏、撤销重做、搜索折叠与冲突恢复。检测到 **融合 Mindmap（personal-mindmap）0.2.0+ 已启用**时，不再显示本插件自己的“思维导图”按钮和导图视图，旧导图标签会自动转交；只保留批注、拖动与工具栏。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
+当前版本 **2.0.0**。2.0.0 把原先独立的 **融合 Mindmap（personal-mindmap）** 完整并入本插件：批注、正文拖动、Markdown 语法工具栏与完整思维导图画布（Markdown 一键切换、`.wmind`、`.xmind`）只需安装一个插件。升级时请停用 `personal-mindmap`，但保留其目录；本插件首次加载会迁移脑图设置和文件状态，旧标签页也会自动衔接。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**1.6.2**
+- 当前版本：**2.0.0**
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)
@@ -19,12 +19,14 @@
    w3330442790-sys/taube-markdown-tool
    ```
 
-4. 选择最新版本（Latest），添加并启用 **Side Comments origin · 增强版**。
+4. 选择最新版本（Latest），添加并启用 **Taube Markdown Tool**。
 5. 后续通过 BRAT 检查此仓库的更新。
 
 这是通过 GitHub／BRAT 安装的版本，尚未作为独立插件提交到 Obsidian 官方插件目录。
 
 如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。沿用同一个插件 ID，升级后在原有设置位置使用。
+
+从 1.6.x 或融合 Mindmap 升级到 2.0.0 时，请停用独立的 `personal-mindmap` 插件并保留其目录；本插件首次加载会读取 `personal-mindmap/data.json` 与 `state.json`，把脑图设置迁移到 `taube-markdown-tool/mindmap-settings.json`，同时转发旧脑图标签。详细说明见 [README.md](README.md)。
 
 ## 已有批注与跨设备同步
 
@@ -35,6 +37,14 @@
 - `side-note-attachments/`：默认批注图片目录。
 
 这些路径可在原插件设置中自定义。**在另一台设备安装插件，不等于同步笔记或批注。**请通过自己的同步方式同步原笔记、实际批注数据目录和附件。跨设备同时编辑同一份批注数据时，需要由同步工具处理冲突。
+
+## 2.0.0 内置完整思维导图
+
+- 原融合 Mindmap 的 Weilanx／gogoga 主画布、主题与样式面板、外框、概括、联系线、背诵模式、备注卡片、富内容及 PNG/SVG 导出全部内置。
+- Markdown 标签右上角一键切换完整画布，不写 frontmatter、不建镜像文件；`.wmind` 完整格式与只读 `.xmind` 也由同一插件处理。
+- 批注设置保存在 `data.json`，脑图设置保存在 `mindmap-settings.json`，互不覆盖；旧 `personal-mindmap` 的 `data.json`、`state.json` 首次加载自动迁移。
+- 旧 `markdown-tool-mindmap`、`personal-mindmap-markdown`、`personal-mindmap-wmind`、`personal-mindmap-xmind` 标签会自动转到对应新视图。
+- 1.2.0–1.6.2 轻量画布的 `<!-- markdown-tool:v1 … -->` 注释会保留，但不会自动转换为新画布的 `wmind-fusion:v1` 格式。
 
 ## 新增功能
 

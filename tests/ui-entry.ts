@@ -26,7 +26,7 @@ w.setup = async (mobile = false) => {
         workspace: { getActiveFile: () => note, getLeaf: () => sourceLeaf, iterateAllLeaves: (fn: any) => { fn(sourceLeaf); },
             getLeavesOfType: () => [{ view: w.view }], setActiveLeaf: () => {}, revealLeaf: async () => {} } };
     const plugin: any = new SideNote(app, { id: 'side-comments-origin' });
-    plugin.settings = { commentSortOrder: 'position', highlightColor: '#FFC800', highlightOpacity: .2, commentsDataFolder: 'side-note-data', markdownFolder: 'side-note-comments' };
+    plugin.toolSettings = { commentSortOrder: 'position', highlightColor: '#FFC800', highlightOpacity: .2, commentsDataFolder: 'side-note-data', markdownFolder: 'side-note-comments' };
     const c = (n: number, overrides: any = {}) => ({ filePath: 'note.md', selectedText: n === 1 ? '甲方证' : '乙方证', comment: `批注${n}`, timestamp: n,
         selectedTextHash: 'hash', startLine: n, startChar: 0, endLine: n, endChar: 3, color: '#ec4899', markType: 'underline', ...overrides });
     plugin.comments = [c(1, { absoluteFrom: 5, absoluteTo: 8 }), c(2), c(3, { markType: 'highlight', color: '#f59e0b', isOrphaned: true }), c(4, { markType: undefined, color: undefined })];

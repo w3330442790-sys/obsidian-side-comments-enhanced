@@ -1,3 +1,15 @@
+# 2.0.0 · 2026-11-14 · 合并为单一插件
+
+- 将原先独立的 **融合 Mindmap（personal-mindmap 0.2.0）** 完整并入 Taube Markdown Tool：Weilanx／gogoga 主画布、主题与样式面板、外框、概括、联系线、背诵模式、备注卡片、富内容、Markdown 一键切换、`.wmind` 与只读 `.xmind` 全部内置；只需安装一个插件。
+- `SideNote` 改为继承内置画布基类，一个插件实例注册两套视图、命令和设置页；命令 ID 去重，共 60+ 个命令与 5 个视图（含旧类型转发视图）。
+- 设置分开保存：批注继续写 `data.json`，脑图写插件目录的 `mindmap-settings.json`，`state.json` 保存锁定／备注状态。首次加载从 `personal-mindmap/data.json`、`state.json` 迁移脑图设置与文件状态，不删除旧目录。
+- 视图类型：Markdown 脑图复用 `markdown-tool-mindmap`，`.wmind` 改为 `taube-markdown-tool-wmind`，`.xmind` 改为 `taube-markdown-tool-xmind`；继续注册 `personal-mindmap-markdown`、`personal-mindmap-wmind`、`personal-mindmap-xmind` 转发视图，旧标签页自动打开同一文件。
+- 若检测到独立 `personal-mindmap` 仍启用，加载时提示停用，避免两个脑图入口和 `.wmind` 注册冲突。
+- Markdown 正文标红命令与右键项改名为“标红选中文字（写入正文）”“清除正文文字颜色”，与批注侧的文字颜色标记区分；命令 ID 不变。
+- 1.2.0–1.6.2 轻量画布的 `<!-- markdown-tool:v1 … -->` 注释原样保留，但不会自动转换成新画布的 `wmind-fusion:v1` 格式；旧关联线／总括子树需保留旧版插件备份。
+- `styles.css` 改为由 `styles.tool.css` + 作用域化画布样式生成；`main.js` 内联 React、手绘字体和第三方许可证。
+- 通过 189 项单元测试（含合并插件启动、视图／命令／设置分文件与旧 personal-mindmap 迁移验证）和 57 项隔离浏览器检查；lint、TypeScript 构建与 bundle 安全检查通过。
+
 # 1.6.2 · 2026-11-14 · 重载后立即转交旧导图标签
 
 - 1.6.1 只在旧标签重新实例化时转交；若 Obsidian 保留着已打开的 `markdown-tool-mindmap` 标签，重载插件后可能仍显示旧画布。1.6.2 在加载时主动扫描工作区所有叶子，把旧标签立即切到 `personal-mindmap-markdown`。
