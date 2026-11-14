@@ -60,3 +60,44 @@ test('a neighbouring sibling is not identity evidence after branch movement', as
   await new CommentManager([comment]).updateCommentCoordinatesForFile(after, 'note.md');
   assert.equal(comment.isOrphaned, true);
 });
+
+test('duplicate text unique inside its stored heading section rebinds after edits', async () => {
+  const before = '# A\n\nSame line\n\n# B\n\nSame line\n';
+  const after = '# A\n\nSame line changed\n\n# B\n\nSame line\n';
+  const comment = anchored(before, 'Same line', { headingPath: ['B'], absoluteFrom: 0, absoluteTo: 0, startLine: 0, startChar: 0, endLine: 0, endChar: 0 });
+  await new CommentManager([comment]).updateCommentCoordinatesForFile(after, 'note.md');
+  assert.equal(comment.isOrphaned, false);
+  assert.equal(comment.absoluteFrom, after.lastIndexOf('Same line'));
+});
+
+test('batch repair prefers intact offsets, then unique text, and refreshes anchors', async () => {
+  const source = '# S\n\n- Same\n  note A\n- Same\n  note B\n\nUnique phrase\n\nAnother unique\n';
+  const second = source.lastIndexOf('Same');
+  const keep = anchored(source, 'Same', { occurrenceIndex: 1, headingPath: ['S'], absoluteFrom: second, absoluteTo: second + 4, contextBefore: '- stale', contextAfter: '\n  stale' });
+  keep.isOrphaned = true;
+  const ambiguous = anchored(source, 'Same', { occurrenceIndex: 0, headingPath: ['S'], absoluteFrom: 0, absoluteTo: 0, contextBefore: '- stale', contextAfter: '\n  stale' });
+  ambiguous.isOrphaned = true;
+  const unique = anchored(source, 'Unique phrase', { absoluteFrom: 0, absoluteTo: 0, headingPath: [] });
+  unique.isOrphaned = true;
+  const manager = new CommentManager([keep, ambiguous, unique]);
+  const result = await manager.repairOrphanedComments(source, 'note.md');
+  assert.equal(result.byOffset, 1);
+  assert.equal(result.repaired, 2);
+  assert.equal(result.remaining, 1);
+  assert.equal(keep.absoluteFrom, source.lastIndexOf('Same'));
+  assert.equal(keep.contextAfter.startsWith('\n  note B'), true);
+  assert.equal(keep.headingPath[0], 'S');
+  assert.equal(unique.isOrphaned, false);
+  assert.equal(unique.absoluteFrom, source.indexOf('Unique phrase'));
+  assert.equal(ambiguous.isOrphaned, true);
+});
+
+test('batch repair leaves genuinely ambiguous duplicate text alone', async () => {
+  const source = '- Same suffix\n- Same suffix\n';
+  const comment = anchored(source, 'Same', { absoluteFrom: 0, absoluteTo: 0, startLine: 0, startChar: 0, endLine: 0, endChar: 0 });
+  comment.isOrphaned = true;
+  const result = await new CommentManager([comment]).repairOrphanedComments(source, 'note.md');
+  assert.equal(result.repaired, 0);
+  assert.equal(result.remaining, 1);
+  assert.equal(comment.isOrphaned, true);
+});

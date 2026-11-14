@@ -37,6 +37,14 @@ export interface Comment {
     color?: string;
 }
 
+export interface OrphanRepairResult {
+    repaired: number;
+    remaining: number;
+    byOffset: number;
+    byUnique: number;
+    byScope: number;
+}
+
 export class CommentManager {
     private comments: Comment[];
     private readonly MIN_TEXT_LENGTH = 3; 
@@ -169,9 +177,22 @@ export class CommentManager {
                 cursor = index + 1;
             }
             if (exactMatches.length > 1) {
+                // A heading section that now contains exactly one occurrence is
+                // stronger than stale context; otherwise only unique context may
+                // decide. Scoring guesses are reserved for the explicit batch
+                // repair command, never for silent re-anchoring.
+                const scope = this.getSearchScope(fileContent, comment);
+                const scoped = exactMatches.filter(index => index >= scope.start && index < scope.end);
+                if (scoped.length === 1) {
+                    this.applyMatch(comment, fileContent, scoped[0], selectedText);
+                    continue;
+                }
                 const contextual = exactMatches.filter(index => this.matchesLocalContext(fileContent, index, comment));
-                if (contextual.length === 1) this.applyMatch(comment, fileContent, contextual[0], selectedText);
-                else comment.isOrphaned = true;
+                if (contextual.length === 1) {
+                    this.applyMatch(comment, fileContent, contextual[0], selectedText);
+                    continue;
+                }
+                comment.isOrphaned = true;
                 continue;
             }
 
@@ -261,7 +282,58 @@ export class CommentManager {
         comment.absoluteTo = index + text.length;
         comment.selectedText = text;
         comment.isOrphaned = false;
+        // Refresh every anchor after a successful match so future edits do not
+        // compare against stale context and orphan the comment again.
+        comment.contextBefore = content.slice(Math.max(0, index - 50), index);
+        comment.contextAfter = content.slice(index + text.length, Math.min(content.length, index + text.length + 50));
+        comment.occurrenceIndex = this.getOccurrenceIndex(content, text, index);
+        comment.headingPath = this.getHeadingPath(content, newStart.line);
         // Hash 在模糊上下文恢复后异步更新不方便，这里保留旧 hash；下一次 add/migrate 会补齐。
+    }
+
+    private occurrenceIndexes(content: string, text: string): number[] {
+        const indexes: number[] = [];
+        if (!text) return indexes;
+        let cursor = 0;
+        while (cursor <= content.length - text.length) {
+            const index = content.indexOf(text, cursor);
+            if (index < 0) break;
+            indexes.push(index);
+            cursor = index + 1;
+        }
+        return indexes;
+    }
+
+    /**
+     * Batch recovery for orphaned annotations, ordered from safest evidence to
+     * weakest: the recorded offsets still matching, a globally unique text, and a
+     * unique text inside the stored heading section. Anything else stays orphaned
+     * for manual review; this never guesses by score.
+     */
+    async repairOrphanedComments(fileContent: string, filePath: string): Promise<OrphanRepairResult> {
+        const result: OrphanRepairResult = { repaired: 0, remaining: 0, byOffset: 0, byUnique: 0, byScope: 0 };
+        const fileComments = this.comments.filter(comment => comment.filePath === filePath && comment.isOrphaned);
+        for (const comment of fileComments) {
+            const selectedText = comment.selectedText || '';
+            if (!selectedText) { result.remaining++; continue; }
+            if (this.isOffsetMatch(fileContent, comment)) {
+                this.applyMatch(comment, fileContent, comment.absoluteFrom!, selectedText);
+                result.repaired++; result.byOffset++; continue;
+            }
+            const occurrences = this.occurrenceIndexes(fileContent, selectedText);
+            if (occurrences.length === 1) {
+                this.applyMatch(comment, fileContent, occurrences[0], selectedText);
+                result.repaired++; result.byUnique++; continue;
+            }
+            const scope = this.getSearchScope(fileContent, comment);
+            const scoped = occurrences.filter(index => index >= scope.start && index < scope.end);
+            if (scoped.length === 1) {
+                this.applyMatch(comment, fileContent, scoped[0], selectedText);
+                result.repaired++; result.byScope++; continue;
+            }
+            result.remaining++;
+        }
+        return result;
     }
 
     private collectCandidates(content: string, comment: Comment, scope: { start: number; end: number }): Array<{ index: number; text: string; source: "exact" | "context" }> {

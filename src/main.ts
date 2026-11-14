@@ -424,6 +424,13 @@ class SideNoteView extends ItemView {
         const orphans = controls.createEl('button', { text: `定位异常 ${this.plugin.commentManager.getCommentsForFile(this.file?.path || '').filter(c => c.isOrphaned).length}` });
         orphans.setAttribute('aria-pressed', String(!!filter.orphanOnly));
         orphans.onclick = () => apply(filter.orphanOnly ? {} : { orphanOnly: true });
+        const orphanCount = this.plugin.commentManager.getOrphanedCommentCount();
+        if (orphanCount > 0) {
+            const repair = controls.createEl('button', { text: '批量修复', cls: 'sidenote-repair-orphans' });
+            repair.setAttribute('aria-label', `批量自动修复定位异常（当前 ${orphanCount} 条）`);
+            repair.title = '先校验原位置，再按唯一文本、标题段和上下文自动恢复；无法确定的仍保留为定位异常';
+            repair.onclick = () => { void this.plugin.repairOrphanedComments(); };
+        }
         controls.createEl('button', { text: '显示全部' }).onclick = () => { this.searchQuery = ''; apply({}); };
         const saved = options.createDiv('sidenote-presets');
         const preset = saved.createEl('select', { attr: { 'aria-label': '常用筛选' } });
@@ -1467,6 +1474,17 @@ class SideNoteSettingTab extends PluginSettingTab {
                 desc: `当前有 ${orphanedCount} 条孤立批注。`
             },
             {
+                name: "批量修复定位异常",
+                desc: "先校验原位置，再按唯一文本、标题段和上下文自动恢复；无法确定的仍保留，不静默误绑。",
+                render: (setting: Setting) => setting.addButton((button) => button
+                    .setButtonText("批量修复")
+                    .setDisabled(orphanedCount === 0)
+                    .onClick(async () => {
+                        await this.plugin.repairOrphanedComments();
+                        (this as unknown as PluginSettingTab & { update(): void }).update();
+                    }))
+            },
+            {
                 name: "删除孤立批注",
                 render: (setting: Setting) => setting.addButton((button) => button
                     .setButtonText(`删除 ${orphanedCount} 条孤立批注`)
@@ -1562,6 +1580,11 @@ class SideNoteSettingTab extends PluginSettingTab {
                 }));
         const orphanedCount = this.plugin.commentManager.getOrphanedCommentCount();
         new Setting(containerEl).setName("孤立批注").setDesc(`当前有 ${orphanedCount} 条孤立批注。`);
+        new Setting(containerEl).setName("批量修复定位异常").setDesc("先校验原位置，再按唯一文本、标题段和上下文自动恢复；无法确定的仍保留。")
+            .addButton((button) => button.setButtonText("批量修复").onClick(async () => {
+                await this.plugin.repairOrphanedComments();
+                this.display();
+            }).setDisabled(orphanedCount === 0));
         new Setting(containerEl).addButton((button) =>
                 button.setButtonText(`删除 ${orphanedCount} 条孤立批注`).setWarning().onClick(async () => {
                     const deleted = this.plugin.commentManager.deleteOrphanedComments();
@@ -3106,6 +3129,47 @@ export default class SideNote extends Plugin {
         }
     }
 
+    /**
+     * One-click batch repair for orphaned annotations. For every affected note it
+     * first revalidates the recorded offsets, then falls back to unique text,
+     * heading-scoped unique text and a clear scoring winner. Unresolved comments
+     * stay orphaned so nothing is bound silently to the wrong text.
+     */
+    public async repairOrphanedComments(scope: 'all' | 'current' = 'all'): Promise<void> {
+        const orphaned = this.comments.filter(comment => comment.isOrphaned);
+        if (!orphaned.length) { new Notice('没有定位异常需要修复。'); return; }
+        const activeFile = scope === 'current' ? this.app.workspace.getActiveFile() : null;
+        const counts = new Map<string, number>();
+        for (const comment of orphaned) {
+            if (activeFile && comment.filePath !== activeFile.path) continue;
+            counts.set(comment.filePath, (counts.get(comment.filePath) ?? 0) + 1);
+        }
+        if (!counts.size) { new Notice('当前笔记没有定位异常。'); return; }
+        let repaired = 0;
+        let remaining = 0;
+        for (const [filePath, count] of counts) {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!(file instanceof TFile)) { remaining += count; continue; }
+            try {
+                const content = await this.app.vault.read(file);
+                const result = await this.commentManager.repairOrphanedComments(content, filePath);
+                repaired += result.repaired;
+                remaining += result.remaining;
+                if (result.repaired) await this.saveCommentsForSingleFile(filePath);
+            } catch (error) {
+                console.error('修复定位异常失败', filePath, error);
+                remaining += count;
+            }
+        }
+        this.refreshViews();
+        this.refreshEditorDecorations();
+        this.scheduleRenderedTableHighlights();
+        if (repaired === 0) new Notice(`已检查 ${counts.size} 个笔记，仍有 ${remaining} 条需要手动定位或删除。`);
+        else new Notice(remaining
+            ? `已自动修复 ${repaired} 条定位异常，仍有 ${remaining} 条需要手动处理。`
+            : `已自动修复全部 ${repaired} 条定位异常。`);
+    }
+
     private showOrphanDeletionNotice(orphans: Comment[]) {
         if (orphans.length === 0) return;
         const fragment = createFragment();
@@ -3309,6 +3373,7 @@ export default class SideNote extends Plugin {
         this.addCommand({ id: 'open-selection-toolbar', name: '打开文字工具栏', editorCallback: editor => this.openSelectionToolbar(editor) });
         this.addCommand({ id: 'red-selected-text', name: '为选中内容标红文字', editorCallback: (editor, view) => this.handleAddComment(editor, view, 'text-color', '#dc2626', true) });
         this.addCommand({ id: 'clear-selected-mark', name: '清除所选标记（保留批注）', editorCallback: (editor, view) => this.handleAddComment(editor, view, 'none', undefined, true) });
+        this.addCommand({ id: 'repair-orphans', name: '批量修复定位异常', callback: () => { void this.repairOrphanedComments(); } });
         this.addCommand({ id: 'block-move-up', name: '上移当前块（段落 / 列表项 / 标题）', editorCallback: editor => this.moveActiveBlock('up', editor) });
         this.addCommand({ id: 'block-move-down', name: '下移当前块（段落 / 列表项 / 标题）', editorCallback: editor => this.moveActiveBlock('down', editor) });
         this.addCommand({ id: 'block-indent', name: '降低当前块层级（归入上一项）', editorCallback: editor => this.moveActiveBlock('indent', editor) });
