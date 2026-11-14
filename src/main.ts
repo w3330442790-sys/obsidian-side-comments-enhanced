@@ -2,6 +2,8 @@ import { ItemView, WorkspaceLeaf, TFile, App, MarkdownView, Notice, ViewStateRes
 import { Comment, CommentManager } from "./commentManager";
 import MindmapPluginBase from "../vendor/personal-mindmap/src/obsidian/main";
 import { registerMindmapBridges } from './mindmap-bridge';
+import { loadExcelTool, standaloneExcelToolEnabled } from './excel-tool';
+import type { Plugin } from 'obsidian';
 import { Modal } from 'obsidian';
 import { filterComments, navigation, rebindComment, restoreComment, draftKey, DraftStore, Draft, Preferences, CommentFilter } from './enhancements';
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
@@ -1759,6 +1761,9 @@ export default class SideNote extends MindmapPluginBase {
     }
     commentManager: CommentManager;
     toolSettings: SideNoteSettings;
+    /** Child component for the fused table toolkit; unloaded with this plugin. */
+    excelTool: Plugin | null = null;
+    private excelToolData: Record<string, unknown> | null = null;
     comments: Comment[] = [];
     imageHashes: Record<string, string> = {};
     private orphanNoticeTimer: number | null = null;
@@ -3377,6 +3382,9 @@ export default class SideNote extends MindmapPluginBase {
         // installed still reference its view types. Forward those tabs to the
         // fused views instead of leaving dead leaves behind.
         registerMindmapBridges(this, this.app);
+        // Table tools are a child component so their global handlers and
+        // command registrations are disposed with this plugin.
+        await this.installExcelTool();
 
         this.registerObsidianProtocolHandler("sidenote", async (params) => {
             const timestamp = parseInt(params.timestamp);
@@ -3683,6 +3691,71 @@ export default class SideNote extends MindmapPluginBase {
             console.error("[SideNote] Word 导出失败", e);
             new Notice("导出 Word 失败：" + (e instanceof Error ? e.message : String(e)));
         }
+    }
+
+    private excelToolSettingsPath(): string {
+        return `${this.manifest.dir}/excel-settings.json`;
+    }
+
+    private async readExcelToolFile(path: string): Promise<Record<string, unknown> | null> {
+        try {
+            if (!(await this.app.vault.adapter.exists(path))) return null;
+            const parsed: unknown = JSON.parse(await this.app.vault.adapter.read(path));
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+                ? parsed as Record<string, unknown>
+                : null;
+        } catch (error) {
+            console.error('[Taube Markdown Tool] 无法读取表格设置', path, error);
+            return null;
+        }
+    }
+
+    /**
+     * One-time import from the standalone plugin, then keep table layout data
+     * in its own file. Never write it to annotation data.json.
+     */
+    private async readExcelToolData(): Promise<Record<string, unknown>> {
+        if (this.excelToolData) return this.excelToolData;
+        let data = await this.readExcelToolFile(this.excelToolSettingsPath());
+        let migrated = false;
+        if (!data) {
+            const configDir = this.app.vault.configDir;
+            for (const legacy of [`${configDir}/plugins/excel-tool/data.json`, `${configDir}/plugins/table-tune/data.json`]) {
+                data = await this.readExcelToolFile(legacy);
+                if (data) { migrated = true; break; }
+            }
+        }
+        this.excelToolData = data ?? {};
+        if (migrated) {
+            try {
+                await this.writeExcelToolData(this.excelToolData);
+            } catch (error) {
+                console.error('[Taube Markdown Tool] 表格设置迁移写入失败', error);
+            }
+        }
+        return this.excelToolData;
+    }
+
+    private async writeExcelToolData(data: unknown): Promise<void> {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            throw new Error('表格设置格式无效');
+        }
+        this.excelToolData = data as Record<string, unknown>;
+        await this.app.vault.adapter.write(this.excelToolSettingsPath(), JSON.stringify(data, null, 2));
+    }
+
+    private async installExcelTool(): Promise<void> {
+        if (standaloneExcelToolEnabled(this.app)) {
+            new Notice('检测到独立 excel tool 插件仍启用。表格工具已内置，请停用 excel-tool / table-tune 后重新加载本插件，避免两套工具栏冲突。');
+            return;
+        }
+        const instance = await loadExcelTool(this.app, this.manifest, {
+            read: () => this.readExcelToolData(),
+            write: data => this.writeExcelToolData(data),
+        });
+        if (!instance) return;
+        this.excelTool = instance;
+        this.addChild(instance);
     }
 
     async loadPluginData() {

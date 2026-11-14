@@ -2,9 +2,9 @@
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-**2.0.0 起，原先独立的“融合 Mindmap（personal-mindmap）”完整并入本插件**：批注、正文拖动、Markdown 工具栏与完整思维导图画布（Markdown 一键切换、`.wmind`、`.xmind`）只需安装一个插件。旧的 `personal-mindmap` 插件请停用，数据和标签页会自动衔接。
+**2.0.0 起，“融合 Mindmap（personal-mindmap）”完整并入本插件；2.1.0 起，“表格工具（excel-tool）”也完整并入。** 批注、正文拖动、Markdown 工具栏、完整思维导图画布（Markdown 一键切换、`.wmind`、`.xmind`）和安卓友好表格工具只需安装一个插件。旧的 `personal-mindmap`、`excel-tool`／`table-tune` 请停用，数据会自动衔接。
 
-- 当前版本：**2.0.1**（Obsidian 1.8.7 或更新版本）
+- 当前版本：**2.1.0**（Obsidian 1.8.7 或更新版本）
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)
@@ -26,7 +26,9 @@
 
 如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。1.4.0 起插件 ID 与仓库统一为 `taube-markdown-tool`，原版与旧的 `personal-markdown-tool` 目录都保持停用、不删除。首次启用新 ID 时，仅在新目录缺少对应文件时按「personal-markdown-tool → side-comments-origin」的顺序复制 data.json 与 enhancements.json，保留自定义批注路径、筛选和未知字段；不删除旧目录、不改笔记。
 
-**从 1.6.x 或融合 Mindmap 升级到 2.0.0 时**：在“设置 → 第三方插件”里停用独立的 **融合 Mindmap（`personal-mindmap`）**，再启用 / 重载本插件。不要删除 `personal-mindmap` 目录；本插件首次加载会读取其中的 `data.json` 与 `state.json`，把脑图设置和文件状态迁到 `taube-markdown-tool/mindmap-settings.json` 与 `state.json`。已经打开的旧脑图标签会自动转到新画布。之后也请停用旧的 `personal-markdown-tool` 与 `side-comments-origin`，避免同时写入批注数据。
+**从 1.6.x 或融合 Mindmap 升级到 2.0.0+ 时**：在“设置 → 第三方插件”里停用独立的 **融合 Mindmap（`personal-mindmap`）**，再启用 / 重载本插件。不要删除 `personal-mindmap` 目录；本插件首次加载会读取其中的 `data.json` 与 `state.json`，把脑图设置和文件状态迁到 `taube-markdown-tool/mindmap-settings.json` 与 `state.json`。已经打开的旧脑图标签会自动转到新画布。之后也请停用旧的 `personal-markdown-tool` 与 `side-comments-origin`，避免同时写入批注数据。
+
+**从 excel-tool / table-tune 升级到 2.1.0 时**：停用独立的 **excel-tool**（或 `table-tune`）并保留其目录。本插件首次加载会读取 `excel-tool/data.json`，若不存在再读取 `table-tune/data.json`，把列宽、行高、合并、底色、固定、工具栏自定义等迁到 `taube-markdown-tool/excel-settings.json`；旧文件不改动，批注 `data.json` 也不会被写入表格数据。旧插件仍启用时，本插件会提示先停用并跳过表格工具，避免两套工具栏和快捷键冲突；停用后重新加载本插件即可。
 
 ## 已有批注与跨设备同步
 
@@ -47,7 +49,7 @@
 - **键盘与触屏替代**：命令“上移／下移当前块”“降低／提升当前块层级”与拖动等效，方便键盘操作或手柄不好按的场景。
 - 设置里可分别关闭“显示 Markdown 工具栏”和“启用拖动调整层级”。
 
-1.2.0 将选区标记、原批注、大纲与思维导图集中在同一插件（2.0.0 起由内置完整画布接管）：
+1.2.0 将选区标记、原批注、大纲与思维导图集中在同一插件（2.0.0 起由内置完整画布接管；2.1.0 起表格工具也由本插件接管）：
 
 - **文字标红**：选中文字后右键选择“打开文字工具栏”，或使用浮动工具栏。文字颜色与背景高亮独立，清除所选标记会保留批注正文。
 - **一键导图**：新建或打开 `.md`，点击右上角“思维导图”；不需要代码块或 `.wmind`。导图内可切换可编辑“大纲”，或“返回 Markdown”直接编辑原文。
@@ -65,7 +67,16 @@ Markdown 是正文来源；完整画布的高级图形信息保存在文件末�
 - 无法确定唯一位置的批注继续保留为定位异常，绝不静默绑到错误文字上；修复成功后会同步刷新上下文、标题路径与出现序号，降低以后再次异常的概率。
 - 重复文本现在优先在所属标题段内判定，段内唯一即可恢复，减少标题结构内重复词造成的误判。
 
-2.0.0 一个插件、两部分能力：
+2.1.0 表格工具内置：
+
+- **表格工具**：电脑鼠标点击单元格，或平板轻点单元格边缘 / 表格旁的小图标，打开悬浮图标栏。
+- **选择与编辑**：矩形选择、整行／整列选择、多行／多列点选、合并／拆分、六向对齐、插入／删除行列、清空内容；普通滑动仍用于浏览。
+- **布局与样式**：拖动列宽／行高，适应屏幕、按内容调整、平均列宽、自动换行、重置布局；固定表头和首列；五种底色、重点标记与清除样式，深色主题自动适配。
+- **复制与导出**：复制到 Excel（HTML/TSV）、复制纯文本、导出 HTML 到笔记库 `表格导出/`。
+- **数据位置**：Markdown 表格内容仍是正文唯一来源；列宽、合并、底色等写入 `excel-settings.json`，不写批注 `data.json`。
+- **工具栏自定义**：勾选显示哪些图标，设置立即保存；隐藏的功能仍可从“更多”里使用。
+
+2.0.0 一个插件、两部分能力（2.1.0 起增加表格工具）：
 
 - **完整主画布**：原“融合 Mindmap”的 Weilanx／gogoga 画布、样式面板、主题、外框、概括、联系线、背诵模式、备注卡片、富内容、PNG/SVG 导出等全部内置，不再需要另装插件。
 - **任意 Markdown 一键切换**：每个 Markdown 标签右上角都有“思维导图”按钮；切换前先保存，脑图里改完可从右上角切回 Markdown 或分屏。不会写 frontmatter、不会生成第二份笔记或镜像文件。

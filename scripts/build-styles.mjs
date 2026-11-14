@@ -9,13 +9,14 @@ import esbuild from "esbuild";
  */
 const banner = `/*!
  * Taube Markdown Tool styles.
- * Annotation UI is maintained in styles.tool.css. Mind-map styles are generated
- * from vendor/personal-mindmap (MIT: Weilanx, gogoga) by scripts/build-styles.mjs.
- * Do not edit the generated part below the marker.
+ * Annotation UI is maintained in styles.tool.css. Table-tool and mind-map styles
+ * are generated from vendor/excel-tool and vendor/personal-mindmap (MIT sources)
+ * by scripts/build-styles.mjs. Do not edit the generated parts below the markers.
  */
 `;
 
 const tool = await readFile("styles.tool.css", "utf8");
+const excel = await readFile("vendor/excel-tool/styles.css", "utf8");
 const theme = await readFile("vendor/personal-mindmap/src/obsidian/theme.css", "utf8");
 const shared = (await readFile("vendor/personal-mindmap/webview/src/style.css", "utf8"))
 	.replace(/\.wm-root/g, "&");
@@ -25,7 +26,7 @@ const gogoga = await readFile("vendor/personal-mindmap/vendor/gogoga/styles.css"
 
 await writeFile(
 	"styles.css",
-	`${banner}${tool}\n\n/* ===== generated: fused mind-map canvas (vendor/personal-mindmap) ===== */\n${code}\n${gogoga}\n`,
+	`${banner}${tool}\n\n/* ===== generated: fused table tools (vendor/excel-tool) ===== */\n${excel}\n\n/* ===== generated: fused mind-map canvas (vendor/personal-mindmap) ===== */\n${code}\n${gogoga}\n`,
 	"utf8",
 );
 console.log("styles.css rebuilt from styles.tool.css + fused mind-map canvas");

@@ -1,10 +1,10 @@
 # Taube Markdown Tool（原 Side Comments 增强版）
 
-当前版本 **2.0.1**。2.0.0 把原先独立的 **融合 Mindmap（personal-mindmap）** 完整并入本插件：批注、正文拖动、Markdown 语法工具栏与完整思维导图画布（Markdown 一键切换、`.wmind`、`.xmind`）只需安装一个插件。升级时请停用 `personal-mindmap`，但保留其目录；本插件首次加载会迁移脑图设置和文件状态，旧标签页也会自动衔接。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
+当前版本 **2.1.0**。2.0.0 把原先独立的 **融合 Mindmap（personal-mindmap）** 完整并入本插件；2.1.0 又把 **表格工具（excel-tool）** 完整并入：批注、正文拖动、Markdown 语法工具栏、完整思维导图画布（Markdown 一键切换、`.wmind`、`.xmind`）和安卓友好表格工具只需安装一个插件。升级时请停用 `personal-mindmap`、`excel-tool`／`table-tune`，但保留其目录；本插件首次加载会迁移相应设置，旧标签页也会自动衔接。最新安装和使用说明见 [README.md](README.md)。下文保留此前批注功能说明。
 
 基于 [Side-Comments-origin](https://github.com/jepicaju862-lab/Side-Comments-origin) 的 Obsidian 批注插件增强版。保留原有功能与批注数据格式，增加手机、平板使用所需的保存与复习操作。
 
-- 当前版本：**2.0.1**
+- 当前版本：**2.1.0**
 - 支持：Windows、macOS、Linux，以及 Obsidian 手机／平板端
 - 插件 ID：`taube-markdown-tool`，独立于原社区版更新
 - [下载最新版本](https://github.com/w3330442790-sys/taube-markdown-tool/releases/latest)
@@ -26,7 +26,9 @@
 
 如果已经安装原版：先备份批注数据与原插件目录，再停用原版并通过 BRAT 添加本仓库。**不要先卸载原插件或删除数据目录。**如果 BRAT 正在跟踪上游原仓库，先移除原仓库的更新跟踪，再添加本仓库，避免上游更新覆盖增强版。沿用同一个插件 ID，升级后在原有设置位置使用。
 
-从 1.6.x 或融合 Mindmap 升级到 2.0.0 时，请停用独立的 `personal-mindmap` 插件并保留其目录；本插件首次加载会读取 `personal-mindmap/data.json` 与 `state.json`，把脑图设置迁移到 `taube-markdown-tool/mindmap-settings.json`，同时转发旧脑图标签。详细说明见 [README.md](README.md)。
+从 1.6.x 或融合 Mindmap 升级到 2.0.0+ 时，请停用独立的 `personal-mindmap` 插件并保留其目录；本插件首次加载会读取 `personal-mindmap/data.json` 与 `state.json`，把脑图设置迁移到 `taube-markdown-tool/mindmap-settings.json`，同时转发旧脑图标签。详细说明见 [README.md](README.md)。
+
+从 excel-tool／table-tune 升级到 2.1.0 时，请停用旧表格插件并保留目录；首次加载会把 `excel-tool/data.json`（不存在时回退 `table-tune/data.json`）迁移到 `taube-markdown-tool/excel-settings.json`，并保留旧文件和批注 `data.json`。旧表格插件仍启用时，本插件会提示并跳过内置表格工具，避免两套工具栏冲突。
 
 ## 已有批注与跨设备同步
 
@@ -37,6 +39,13 @@
 - `side-note-attachments/`：默认批注图片目录。
 
 这些路径可在原插件设置中自定义。**在另一台设备安装插件，不等于同步笔记或批注。**请通过自己的同步方式同步原笔记、实际批注数据目录和附件。跨设备同时编辑同一份批注数据时，需要由同步工具处理冲突。
+
+## 2.1.0 内置表格工具
+
+- 电脑鼠标点击单元格、平板轻点单元格边缘或表格旁的小图标，打开悬浮图标栏，提供选择、合并／拆分、对齐、插入／删除行列、清空、固定、整理、样式、复制／导出、撤销／重做等操作。
+- 列宽、行高、合并、底色、重点标记、固定和工具栏自定义保存在 `excel-settings.json`；Markdown 表格正文仍是内容唯一来源，不覆盖批注 `data.json`。
+- 支持整行／整列、多行／多列点选与矩形选择；普通滑动仍用于浏览。
+- 首次加载自动迁移旧 `excel-tool`／`table-tune` 表格设置；旧插件继续启用时，Taube 的内置表格工具会等待用户停用旧插件并重载。
 
 ## 2.0.0 内置完整思维导图
 

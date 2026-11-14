@@ -17,6 +17,7 @@ function licenseBanner() {
 		"Copyright (c) 2026 taube; original Side-Comments-origin and upstream notices retained.",
 		...[
 			"LICENSE",
+			"vendor/excel-tool/LICENSE",
 			"vendor/personal-mindmap/LICENSE",
 			"vendor/personal-mindmap/vendor/gogoga/LICENSE",
 			"vendor/personal-mindmap/webview/LICENSE-OFL.txt",

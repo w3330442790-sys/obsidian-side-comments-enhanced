@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
  * Weilanx/gogoga editor: views, commands, setting tabs and the two separate
  * settings files must all be registered exactly once from one plugin instance.
  */
-async function boot(seed: Record<string, string> = {}) {
+async function boot(seed: Record<string, string> = {}, enabledPlugins: string[] = []) {
   const result = await build({
     entryPoints: ['src/main.ts'], bundle: true, write: false, platform: 'node', format: 'cjs',
     define: { 'process.env.NODE_ENV': '"production"' },
@@ -24,8 +24,9 @@ async function boot(seed: Record<string, string> = {}) {
             register(fn){ this.cleanups.push(fn); }
             registerEvent(ref){ this.register(()=>ref.off()); }
             registerDomEvent(target,name,handler){ target.addEventListener?.(name,handler); this.register(()=>target.removeEventListener?.(name,handler)); }
-            addChild(){ return new Component(); }
-            load(){} unload(){ for(const fn of this.cleanups.splice(0).reverse())fn(); }
+            addChild(child){ (this.children??=[]).push(child); if(this._loaded && !child._loaded) child.load?.(); return child; }
+            load(){ if(this._loaded) return; this._loaded=true; const result=this.onload?.(); for(const child of this.children??[]) child.load?.(); return result; }
+            unload(){ for(const fn of this.cleanups.splice(0).reverse())fn(); for(const child of this.children??[]) child.unload?.(); this.children=[]; }
           }
           class WorkspaceLeaf {
             constructor(){ this.app=globalThis.__testApp; this.view={ getViewType(){return 'markdown';}, file:null, containerEl:{ownerDocument:document} }; }
@@ -153,9 +154,10 @@ async function boot(seed: Record<string, string> = {}) {
     },
     fileManager: { getAvailablePathForAttachment: async (name: string) => name },
     embedRegistry: { embedByExtension: embeds, registerExtension(ext: string, create: unknown) { embeds[ext] = create; }, unregisterExtension(ext: string) { delete embeds[ext]; } },
-    plugins: { plugins: {}, enabledPlugins: new Set<string>() },
+    plugins: { plugins: {}, enabledPlugins: new Set<string>(enabledPlugins) },
     internalPlugins: { getPluginById: () => undefined },
     setting: { open() {}, openTabById() {} },
+    commands: { executeCommand() {}, commands: {} },
     loadLocalStorage: () => null, saveLocalStorage: () => {},
     scope: {},
   };
@@ -208,6 +210,14 @@ test('one plugin registers both feature sets and keeps their settings in separat
     assert.equal(f.plugin.tabs[0].name, 'Taube Markdown Tool');
     assert.match(f.plugin.tabs[1].name, /思维导图/, 'mind-map tab has its own nav label');
 
+    const excel = f.plugin.excelTool as any;
+    assert.ok(excel, 'fused table tools are instantiated as a child component');
+    const tableCommandIds = excel.commands.map((command: any) => command.id);
+    for (const id of ['open-table-tools', 'merge-selected-cells', 'split-cell', 'delete-selected-rows', 'delete-selected-columns']) {
+      assert.ok(tableCommandIds.includes(id), id);
+    }
+    assert.equal(excel.manifest, f.plugin.manifest, 'table commands join the host command namespace');
+
     assert.equal(typeof f.plugin.toolSettings.commentSortOrder, 'string');
     assert.ok(Array.isArray(f.plugin.settings.customThemes), 'mind-map settings live on plugin.settings');
 
@@ -223,12 +233,48 @@ test('one plugin registers both feature sets and keeps their settings in separat
     assert.equal(mindmap.defaultTheme, 'dark');
     assert.equal(tool.commentSortOrder, 'position');
     assert.equal(mindmap.customThemes.length, 0);
+
+    excel.widths = { 'note.md': { table: ['100px', '200px'] } };
+    await excel.persist();
+    assert.ok(f.files.has('.obsidian/plugins/taube-markdown-tool/excel-settings.json'), 'table settings have their own file');
+    const tableSettings = JSON.parse(f.files.get('.obsidian/plugins/taube-markdown-tool/excel-settings.json')!);
+    assert.deepEqual(tableSettings.widths, excel.widths);
+    assert.equal(JSON.parse(f.files.get('.obsidian/plugins/taube-markdown-tool/data.json')!).widths, undefined);
   } finally {
     f.cleanup();
   }
   assert.equal(f.refs.size, 0, 'all workspace/cache listeners are released');
   assert.equal(f.plugin.views.size, 0);
   assert.equal(f.plugin.commands.length, 0);
+});
+
+test('standalone excel-tool table settings migrate into excel-settings.json only', async () => {
+  const legacy = JSON.stringify({
+    widths: { 'note.md': { table: ['180px'] } },
+    merges: { 'note.md': { table: [{ r: 0, c: 0, rowspan: 1, colspan: 2 }] } },
+    future: { keep: true },
+  });
+  const f = await boot({ '.obsidian/plugins/excel-tool/data.json': legacy });
+  try {
+    assert.ok(f.plugin.excelTool);
+    assert.ok(f.files.has('.obsidian/plugins/taube-markdown-tool/excel-settings.json'));
+    const migrated = JSON.parse(f.files.get('.obsidian/plugins/taube-markdown-tool/excel-settings.json')!);
+    assert.deepEqual(migrated.widths, { 'note.md': { table: ['180px'] } });
+    assert.deepEqual(migrated.future, { keep: true });
+    assert.equal(f.files.get('.obsidian/plugins/excel-tool/data.json'), legacy, 'legacy file is untouched');
+    assert.equal(f.files.has('.obsidian/plugins/taube-markdown-tool/data.json'), false, 'annotation data.json is not created by table migration');
+  } finally {
+    f.cleanup();
+  }
+});
+
+test('table tools defer to a still-enabled standalone excel-tool plugin', async () => {
+  const f = await boot({}, ['excel-tool']);
+  try {
+    assert.equal(f.plugin.excelTool, null);
+  } finally {
+    f.cleanup();
+  }
 });
 
 test('first load migrates standalone personal-mindmap settings and state once', async () => {

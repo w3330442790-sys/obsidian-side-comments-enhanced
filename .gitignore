@@ -18,6 +18,7 @@ main.js
 # obsidian
 data.json
 mindmap-settings.json
+excel-settings.json
 state.json
 
 # Exclude macOS Finder (System Explorer) View States
