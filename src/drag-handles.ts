@@ -115,13 +115,12 @@ function startDrag(view: EditorView, block: DocBlock, event: PointerEvent, optio
     document.body.classList.add('mt-drag-cursor');
 
     const session: DragSession = { view, block, indicator, target: null, pointerId: event.pointerId };
-    let pointerX = event.clientX;
     let pointerY = event.clientY;
     let frame = 0;
 
     const update = () => {
         frame = 0;
-        const target = resolveTarget(view, block, pointerX, pointerY, cache);
+        const target = resolveTarget(view, block, pointerY, cache);
         session.target = target;
         if (!target) {
             indicator.hidden = true;
@@ -135,7 +134,6 @@ function startDrag(view: EditorView, block: DocBlock, event: PointerEvent, optio
 
     const pointerMove = (moveEvent: PointerEvent) => {
         if (moveEvent.pointerId !== session.pointerId) return;
-        pointerX = moveEvent.clientX;
         pointerY = moveEvent.clientY;
         moveEvent.preventDefault();
         schedule();
@@ -153,7 +151,7 @@ function startDrag(view: EditorView, block: DocBlock, event: PointerEvent, optio
         if (!commit) return;
         // Recompute from the last pointer position: the final move may not have
         // reached the next animation frame before the pointer was released.
-        const target = resolveTarget(view, block, pointerX, pointerY, cache);
+        const target = resolveTarget(view, block, pointerY, cache);
         if (!target) return;
         const index = cache.get(view);
         const moving = index.at(block.startLine);
@@ -189,25 +187,19 @@ function startDrag(view: EditorView, block: DocBlock, event: PointerEvent, optio
     update();
 }
 
-function resolveTarget(view: EditorView, block: DocBlock, x: number, y: number, cache: SnapshotCache): { block: DocBlock; mode: DropMode } | null {
+function resolveTarget(view: EditorView, block: DocBlock, y: number, cache: SnapshotCache): { block: DocBlock; mode: DropMode } | null {
     const doc = view.state.doc;
-    // Resolve the target line from the vertical position only. posAtCoords needs the
-    // pointer to be inside the content box, which is brittle at the very top edge of
-    // a note or when a line is padded differently across platforms.
-    const position = view.posAtCoords({ x, y });
-    let lineNumber: number;
-    if (position !== null && position >= 0) {
-        lineNumber = doc.lineAt(position).number;
-    } else {
-        lineNumber = doc.lineAt(view.lineBlockAtHeight(y - view.documentTop).from).number;
-    }
+    // Resolve line and ratio from line-block geometry. posAtCoords needs the pointer
+    // inside the content box, and coordsAtPos reports padding differently across
+    // platforms, which made a top-edge drop unreliable.
+    const lineNumber = doc.lineAt(view.lineBlockAtHeight(y - view.documentTop).from).number;
     const target = cache.get(view).at(lineNumber - 1);
     if (target.kind === 'other') return null;
     if (target.startLine >= block.startLine && target.startLine <= block.endLine) return null;
-    const coords = view.coordsAtPos(doc.line(lineNumber).from);
-    if (!coords) return null;
-    const height = Math.max(6, coords.bottom - coords.top);
-    const ratio = (y - coords.top) / height;
+    const info = view.lineBlockAt(doc.line(lineNumber).from);
+    const top = view.documentTop + info.top;
+    const height = Math.max(6, info.height);
+    const ratio = (y - top) / height;
     let mode: DropMode = ratio < 0.32 ? 'before' : ratio > 0.68 ? 'after' : 'child';
     if (mode === 'child' && target.kind !== 'heading' && target.kind !== 'list') mode = ratio < 0.5 ? 'before' : 'after';
     return { block: target, mode };

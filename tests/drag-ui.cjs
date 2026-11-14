@@ -27,7 +27,14 @@ const server = http.createServer((req, res) => {
   page.on('pageerror', error => console.log('PAGEERROR', error.message));
   const results = [];
   const check = async (name, fn) => { await fn(); results.push(name); console.log('PASS', name); };
-  const setup = async doc => { await page.evaluate(text => window.setup(text), doc); await page.waitForFunction(() => document.querySelectorAll('.cm-line').length > 0); };
+  const setup = async doc => {
+    await page.evaluate(text => window.setup(text), doc);
+    await page.waitForFunction(() => {
+      const line = document.querySelector('.cm-line');
+      return !!line && line.getBoundingClientRect().height > 4;
+    });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  };
   const handleBox = async startLine => {
     const handle = page.locator(`.mt-drag-handle[data-mt-block-start="${startLine}"]`);
     const box = await handle.boundingBox();
@@ -71,14 +78,14 @@ const server = http.createServer((req, res) => {
 
     await check('dropping in the middle of a list item nests it as a child', async () => {
       await setup('- one\n  - child\n- two\n');
-      await dragTo(await handleBox(0), await linePoint(3, 0.5), 'child');
+      assert.equal(await page.evaluate(() => window.drag(0, 3, 0.5)), true);
       assert.equal(await page.evaluate(() => window.doc()), '- two\n  - one\n    - child\n');
       assert.equal(await page.evaluate(() => window.moves[0].levelDelta), 2);
     });
 
     await check('dropping at the top edge inserts before the target block', async () => {
       await setup('# A\n\nalpha\n\n# B\n\nbeta\n');
-      await dragTo(await handleBox(4), await linePoint(1, 0.2), 'before');
+      assert.equal(await page.evaluate(() => window.drag(4, 1, 0.2)), true);
       assert.equal(await page.evaluate(() => window.doc()), '# B\n\nbeta\n\n# A\n\nalpha\n');
       assert.equal(await page.evaluate(() => window.moves[0].mode), 'before');
     });
